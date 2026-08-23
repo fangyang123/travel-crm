@@ -334,7 +334,7 @@ function renderTodo(){
       <div class="info"><div class="name">${c.name} <span class="days-left ${daysLeftClass(d)}">剩${d}天</span></div>
       <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${c.created_at}</span><span>已跟进 ${c.follow_ups.length} 次</span></div>
       ${noteHtml}</div>
-      <div class="ops"><button class="btn btn-primary btn-sm" onclick="openDetail('${c.id}')">跟进</button></div>
+      <div class="ops"><button class="btn btn-primary btn-sm" data-open="${c.id}">跟进</button></div>
     </div>`;
   }).join('');
 }
@@ -365,7 +365,7 @@ function renderTable(){
       <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
       <td>${tag}</td><td>${c.created_at}</td><td>${c.last_follow_at||'—'}</td>
       <td>${st==='跟进中'?'<span class="days-left '+daysLeftClass(d)+'">'+d+'天</span>':'—'}</td>
-      <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="openDetail('${c.id}')">详情</button></td>
+      <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-open="${c.id}">详情</button></td>
     </tr>`;
   }).join('');
 }
@@ -388,7 +388,7 @@ window.createCustomer=async()=>{
   closeModal('createModal'); toast('已创建并开始跟进');
 };
 window.openDetail=id=>{
-  currentCustId=id; const c=customers.find(x=>x.id===id); if(!c)return;
+  currentCustId=id; const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
   $('dTitle').textContent=c.name+' 的订单';
   $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
     <div>证件号：<b>${c.id_card}</b>（${maskId(c.id_card)}）</div>
@@ -426,6 +426,11 @@ window.exportCSV=()=>{
 };
 
 /* ============ UI 辅助 ============ */
+/* 事件委托：通过 data-open 触发详情弹窗，避免内联 onclick 的全局函数/类型坑 */
+document.addEventListener('click', e=>{
+  const btn=e.target.closest('[data-open]');
+  if(btn){ window.openDetail(btn.dataset.open); }
+});
 function showModal(id){ $(id).classList.add('show'); }
 window.closeModal=id=>$(id).classList.remove('show');
 window.addEventListener('click',e=>{ if(e.target.classList.contains('modal-mask'))e.target.classList.remove('show'); });

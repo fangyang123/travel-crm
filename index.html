@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅游客户信息系统</title>
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8; --primary-bg:#eff6ff;
+  --success:#16a34a; --success-bg:#f0fdf4; --success-border:#bbf7d0;
+  --danger:#dc2626; --danger-bg:#fef2f2; --danger-border:#fecaca;
+  --warn:#d97706; --warn-bg:#fffbeb;
+  --text:#1e293b; --text2:#64748b; --text3:#94a3b8;
+  --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.header{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.header h1{font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.header .date{font-size:13px;opacity:.85;}
+.header .spacer{flex:1;}
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.15);border-radius:10px;padding:4px;}
+.tabs button{border:none;background:transparent;color:#fff;padding:7px 18px;border-radius:8px;cursor:pointer;font-size:14px;transition:.15s;}
+.tabs button.active{background:#fff;color:var(--primary);font-weight:600;}
+.tabs button .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;font-size:11px;padding:0 6px;margin-left:5px;line-height:17px;min-width:17px;text-align:center;}
+.container{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.stat-card .num{font-size:28px;font-weight:700;margin-bottom:2px;}
+.stat-card .label{font-size:13px;color:var(--text2);}
+.stat-card.c-blue .num{color:var(--primary);} .stat-card.c-green .num{color:var(--success);}
+.stat-card.c-red .num{color:var(--danger);} .stat-card.c-amber .num{color:var(--warn);}
+.stat-card.c-pink .num{color:#db2777;}
+
+.panel{background:var(--card);border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.panel h2{font-size:16px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.panel .sub{font-size:13px;color:var(--text2);margin-bottom:14px;}
+.icon{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.empty{text-align:center;color:var(--text3);padding:26px 0;font-size:14px;}
+
+.cust-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;transition:.15s;}
+.cust-item:hover{border-color:var(--primary);background:var(--primary-bg);}
+.cust-item .info{flex:1;min-width:0;}
+.cust-item .name{font-weight:600;font-size:15px;}
+.cust-item .meta{font-size:12.5px;color:var(--text2);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
+.cust-item .ops{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.days-left{font-size:12px;padding:3px 9px;border-radius:99px;font-weight:600;white-space:nowrap;}
+.days-left.ok{background:var(--success-bg);color:var(--success);}
+.days-left.warn{background:var(--warn-bg);color:var(--warn);}
+.days-left.urgent{background:var(--danger-bg);color:var(--danger);}
+
+.tag{display:inline-block;font-size:12px;padding:2px 10px;border-radius:99px;font-weight:500;}
+.tag-following{background:var(--warn-bg);color:var(--warn);}
+.tag-success{background:var(--success-bg);color:var(--success);}
+.tag-fail{background:var(--danger-bg);color:var(--danger);}
+.tag-birthday{background:#fce7f3;color:#db2777;}
+.tag-auto{background:var(--danger-bg);color:var(--danger);font-size:11px;margin-left:4px;}
+
+.btn{border:none;border-radius:8px;padding:8px 16px;font-size:14px;cursor:pointer;transition:.15s;font-family:inherit;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-ghost{background:#fff;color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary);}
+.btn-success{background:var(--success);color:#fff;}
+.btn-danger{background:#fff;color:var(--danger);border:1px solid var(--danger-border);}
+.btn-danger:hover{background:var(--danger-bg);}
+.btn-sm{padding:5px 12px;font-size:13px;}
+
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.toolbar input[type=text]{flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;}
+.toolbar input[type=text]:focus{border-color:var(--primary);}
+.seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.seg button{border:none;background:#fff;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);}
+.seg button.active{background:var(--primary);color:#fff;}
+
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{text-align:left;padding:10px 12px;color:var(--text2);font-weight:500;font-size:13px;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:11px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tr:hover td{background:#f8fafc;}
+
+.modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:40px 16px;overflow-y:auto;}
+.modal-mask.show{display:flex;}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:520px;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:pop .18s ease;}
+@keyframes pop{from{transform:translateY(12px);opacity:0;}to{transform:none;opacity:1;}}
+.modal-head{padding:18px 22px 0;display:flex;justify-content:space-between;align-items:center;}
+.modal-head h3{font-size:17px;font-weight:600;}
+.modal-close{border:none;background:none;font-size:22px;cursor:pointer;color:var(--text3);line-height:1;}
+.modal-body{padding:16px 22px 22px;}
+.form-item{margin-bottom:14px;}
+.form-item label{display:block;font-size:13.5px;font-weight:500;margin-bottom:6px;color:var(--text);}
+.form-item input,.form-item textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;font-family:inherit;}
+.form-item input:focus,.form-item textarea:focus{border-color:var(--primary);}
+.form-item .tip{color:var(--text3);font-size:12.5px;margin-top:4px;}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding-top:6px;}
+
+.timeline{margin:12px 0;max-height:260px;overflow-y:auto;}
+.timeline-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--border);}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-date{font-size:12.5px;color:var(--text3);white-space:nowrap;padding-top:2px;width:88px;flex-shrink:0;}
+.timeline-note{font-size:14px;line-height:1.5;}
+
+.bday-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+.bday-card{background:linear-gradient(135deg,#fdf2f8,#fff);border:1px solid #fbcfe8;border-radius:12px;padding:16px;display:flex;gap:12px;align-items:center;}
+.bday-emoji{font-size:34px;}
+.bday-card .name{font-weight:600;font-size:15px;}
+.bday-card .msg{font-size:12.5px;color:var(--text2);margin-top:3px;}
+
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
+#toast.show{opacity:1;}
+#connBar{text-align:center;font-size:13px;padding:8px;color:var(--text2);}
+
+@media(max-width:640px){
+  .cust-item{flex-wrap:wrap;} .cust-item .ops{width:100%;justify-content:flex-end;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧳 旅游客户信息系统</h1>
+  <span class="date" id="todayLabel"></span>
+  <div class="spacer"></div>
+  <div class="tabs">
+    <button class="active" data-tab="workbench">今日工作台</button>
+    <button data-tab="customers">客户管理<span class="badge" id="pendingBadge" style="display:none"></span></button>
+  </div>
+</div>
+
+<div class="container" id="connBar">正在连接云数据库…</div>
+
+<div class="container" id="app" style="display:none;">
+  <!-- 工作台 -->
+  <div id="page-workbench">
+    <div class="stats" id="statsRow"></div>
+    <div class="panel">
+      <h2><span class="icon" style="background:var(--warn-bg);">📋</span>今日待跟进 <span class="tag tag-following" id="todoCount"></span></h2>
+      <div class="sub">以下客户状态尚未更新（今天还没跟进），请逐个跟进处理</div>
+      <div id="todoList"></div>
+    </div>
+    <div class="panel">
+      <h2><span class="icon" style="background:#fce7f3;">🎂</span>今日生日客户 <span class="tag tag-birthday" id="bdayCount"></span></h2>
+      <div class="sub">根据身份证出生日期（公历）自动匹配，记得送上生日祝福</div>
+      <div id="bdayList"></div>
+    </div>
+  </div>
+
+  <!-- 客户管理 -->
+  <div id="page-customers" style="display:none;">
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="搜索姓名或身份证号…">
+      <div class="seg" id="statusFilter">
+        <button data-f="all" class="active">全部</button>
+        <button data-f="跟进中">跟进中</button>
+        <button data-f="成功">成功</button>
+        <button data-f="失败">失败</button>
+      </div>
+      <button class="btn btn-primary" onclick="openCreateModal()">＋ 新建客户</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">导出CSV</button>
+    </div>
+    <div class="panel" style="padding:8px 12px;">
+      <table>
+        <thead><tr>
+          <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
+          <th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
+        </tr></thead>
+        <tbody id="custTable"></tbody>
+      </table>
+      <div class="empty" id="tableEmpty" style="display:none;">暂无客户，点击右上角「新建客户」开始</div>
+    </div>
+  </div>
+
+  <div class="footer-note" style="text-align:center;color:var(--text3);font-size:12.5px;padding:10px 0 0;">数据保存在 Supabase 云端 · 创建满 15 天未出结果将自动判定为失败</div>
+</div>
+
+<!-- 新建客户 -->
+<div class="modal-mask" id="createModal">
+  <div class="modal">
+    <div class="modal-head"><h3>新建客户（生成订单）</h3><button class="modal-close" onclick="closeModal('createModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label>客户姓名 *</label>
+        <input type="text" id="cName" placeholder="请输入姓名" maxlength="30">
+      </div>
+      <div class="form-item">
+        <label>身份证号 *</label>
+        <input type="text" id="cIdcard" placeholder="18位身份证号码" maxlength="18">
+        <div class="tip" id="cIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
+      </div>
+      <div class="form-item">
+        <label>备注（选填）</label>
+        <textarea id="cNote" rows="2" placeholder="如：咨询云南线路，预算5000"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('createModal')">取消</button>
+        <button class="btn btn-primary" onclick="createCustomer()">创建并开始跟进</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 客户详情 -->
+<div class="modal-mask" id="detailModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="dTitle">客户详情</h3><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
+    <div class="modal-body">
+      <div id="dInfo"></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;" id="dStatusBtns"></div>
+      <div class="form-item">
+        <label>添加跟进记录</label>
+        <textarea id="dFollowNote" rows="2" placeholder="本次跟进情况，如：电话已接通，客户考虑中…"></textarea>
+        <div id="dFollowErr" style="display:none;color:var(--danger);font-size:12.5px;margin-top:4px;">请填写跟进内容</div>
+      </div>
+      <div class="modal-foot" style="justify-content:space-between;">
+        <button class="btn btn-danger" id="dDeleteBtn">删除客户</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="closeModal('detailModal')">关闭</button>
+          <button class="btn btn-primary" onclick="addFollowUp()">记录并完成今日跟进</button>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">跟进历史</div>
+        <div class="timeline" id="dTimeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* ============ 配置：独立 Supabase 项目（travel-crm） ============ */
+const SUPABASE_URL = 'https://onuvswlnuziqrirbfdfv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_6tj6Mso4Kzu_nZYHORQHFg_KWb3E6Vz';
+/* ================================================== */
+
+const $ = id => document.getElementById(id);
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const daysBetween = (a,b) => Math.floor((new Date(b)-new Date(a))/86400000);
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2200); };
+
+function validateIdCard(id){
+  id = id.trim().toUpperCase();
+  if(!/^\d{17}[\dX]$/.test(id)) return {ok:false,msg:'格式不正确，应为17位数字加1位校验码'};
+  const y=+id.substr(6,4), m=+id.substr(10,2), d=+id.substr(12,2);
+  const dt=new Date(y,m-1,d);
+  if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d||y<1900||y>new Date().getFullYear()) return {ok:false,msg:'出生日期无效'};
+  const w=[7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2], codes='10X98765432';
+  let sum=0; for(let i=0;i<17;i++) sum+=+id[i]*w[i];
+  if(codes[sum%11]!==id[17]) return {ok:false,msg:'校验码不正确，请核对身份证号'};
+  return {ok:true, birth:y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'), gender:(+id[16])%2===1?'男':'女'};
+}
+function ageFromBirth(birth){ const b=new Date(birth), n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--; return a; }
+function maskId(id){ return id.slice(0,6)+'********'+id.slice(14); }
+
+/* ============ Supabase 实例 ============ */
+let supabase, customers=[];
+
+/* ============ 自动判失败：客户端执行 ============ */
+function autoFail(){
+  const today=todayStr(); let changed=0; const ups=[];
+  customers.forEach(c=>{
+    if(c.status==='跟进中' && daysBetween(c.created_at,today)>=15){
+      c.status='失败'; c.auto_failed=true; c.status_at=today;
+      c.follow_ups.push({date:today,note:'系统自动判定：创建满15天未出结果'});
+      ups.push({id:c.id,status:'失败',auto_failed:true,status_at:today,follow_ups:JSON.stringify(c.follow_ups)});
+      changed++;
+    }
+  });
+  if(changed){
+    ups.forEach(u=>supabase.from('customers').update(u).eq('id',u.id));
+    toast('系统自动判定 '+changed+' 位客户跟进失败（超15天）');
+  }
+}
+
+/* ============ 数据读写 ============ */
+async function loadData(){
+  const {data,error}=await supabase.from('customers').select('*').order('created_at',{ascending:true});
+  if(error){ toast('读取失败：'+error.message); return; }
+  customers = data.map(r=>({...r, follow_ups: typeof r.follow_ups==='string'?JSON.parse(r.follow_ups):(r.follow_ups||[])}));
+  autoFail(); render();
+}
+async function saveCustomer(rec){
+  const row={ ...rec, follow_ups:JSON.stringify(rec.follow_ups||[]) };
+  if(rec.id){
+    const {error}=await supabase.from('customers').update(row).eq('id',rec.id);
+    if(error)return toast('更新失败：'+error.message);
+  }else{
+    const {error}=await supabase.from('customers').insert(row);
+    if(error)return toast('创建失败：'+error.message);
+  }
+  await loadData();
+}
+async function deleteCustomer(id){
+  const {error}=await supabase.from('customers').delete().eq('id',id);
+  if(error)return toast('删除失败：'+error.message);
+  closeModal('detailModal'); await loadData(); toast('已删除');
+}
+
+/* ============ 派生计算 ============ */
+function pendingList(){ const t=todayStr(); return customers.filter(c=>c.status==='跟进中'&&c.last_follow_at!==t); }
+function birthdayList(){ const md=todayStr().slice(5); return customers.filter(c=>c.birth&&c.birth.slice(5)===md); }
+function remaining(c){ return Math.max(0, 15 - daysBetween(c.created_at, todayStr())); }
+function daysLeftClass(d){ return d<=3?'urgent':d<=7?'warn':'ok'; }
+
+/* ============ 渲染 ============ */
+function render(){
+  renderStats(); renderTodo(); renderBday(); renderTable();
+}
+function renderStats(){
+  const cs=customers, f=cs.filter(c=>c.status==='跟进中').length, s=cs.filter(c=>c.status==='成功').length, fa=cs.filter(c=>c.status==='失败').length;
+  const done=s+fa, rate=done?Math.round(s/done*100)+'%':'—';
+  $('statsRow').innerHTML=`
+    <div class="stat-card c-blue"><div class="num">${cs.length}</div><div class="label">客户总数</div></div>
+    <div class="stat-card c-amber"><div class="num">${f}</div><div class="label">跟进中</div></div>
+    <div class="stat-card c-green"><div class="num">${s}</div><div class="label">成功</div></div>
+    <div class="stat-card c-red"><div class="num">${fa}</div><div class="label">失败</div></div>
+    <div class="stat-card c-pink"><div class="num">${rate}</div><div class="label">成交率</div></div>`;
+}
+function renderTodo(){
+  const list=pendingList();
+  $('todoCount').textContent=list.length+' 位';
+  const badge=$('pendingBadge'); badge.style.display=list.length?'':'none'; badge.textContent=list.length;
+  if(!list.length){ $('todoList').innerHTML='<div class="empty">🎉 太棒了！今天需要跟进的客户已全部处理完</div>'; return; }
+  $('todoList').innerHTML=list.map(c=>{
+    const d=remaining(c);
+    return `<div class="cust-item">
+      <div class="info"><div class="name">${c.name} <span class="days-left ${daysLeftClass(d)}">剩${d}天</span></div>
+      <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${c.created_at}</span><span>已跟进 ${c.follow_ups.length} 次</span></div></div>
+      <div class="ops"><button class="btn btn-primary btn-sm" onclick="openDetail('${c.id}')">跟进</button></div>
+    </div>`;
+  }).join('');
+}
+function renderBday(){
+  const list=birthdayList();
+  $('bdayCount').textContent=list.length+' 位';
+  if(!list.length){ $('bdayList').innerHTML='<div class="empty">今天没有客户过生日</div>'; return; }
+  $('bdayList').innerHTML=`<div class="bday-grid">`+list.map(c=>`
+    <div class="bday-card"><div class="bday-emoji">🎂</div>
+      <div><div class="name">${c.name}</div><div class="msg">${ageFromBirth(c.birth)} 岁 · ${maskId(c.id_card)}</div></div></div>`).join('')+`</div>`;
+}
+function renderTable(){
+  const kw=$('searchInput').value.trim().toLowerCase();
+  const f=$('statusFilter').querySelector('.active').dataset.f;
+  let list=customers.filter(c=>{
+    if(f!=='all'&&c.status!==f)return false;
+    if(kw&&!(c.name.toLowerCase().includes(kw)||c.id_card.toLowerCase().includes(kw)))return false;
+    return true;
+  });
+  $('tableEmpty').style.display=list.length?'none':'';
+  $('custTable').innerHTML=list.map(c=>{
+    const d=remaining(c), st=c.status;
+    const tag = st==='跟进中'?'<span class="tag tag-following">跟进中</span>'
+      : st==='成功'?'<span class="tag tag-success">成功</span>'
+      : '<span class="tag tag-fail">失败'+(c.auto_failed?'·超时':'')+'</span>';
+    return `<tr>
+      <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
+      <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
+      <td>${tag}</td><td>${c.created_at}</td><td>${c.last_follow_at||'—'}</td>
+      <td>${st==='跟进中'?'<span class="days-left '+daysLeftClass(d)+'">'+d+'天</span>':'—'}</td>
+      <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="openDetail('${c.id}')">详情</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============ 弹窗 / 操作 ============ */
+window.openCreateModal=()=>{ $('cName').value='';$('cIdcard').value='';$('cNote').value='';$('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; showModal('createModal'); };
+window.createCustomer=async()=>{
+  const name=$('cName').value.trim(), idcard=$('cIdcard').value.trim(), note=$('cNote').value.trim();
+  if(!name){ return toast('请填写姓名'); }
+  const v=validateIdCard(idcard);
+  if(!v.ok){ $('cIdcardTip').textContent='⚠ '+v.msg; $('cIdcardTip').style.color='var(--danger)'; return; }
+  const today=todayStr();
+  await saveCustomer({ name, id_card:idcard, birth:v.birth, gender:v.gender, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] });
+  closeModal('createModal'); toast('已创建并开始跟进');
+};
+window.openDetail=id=>{
+  currentCustId=id; const c=customers.find(x=>x.id===id); if(!c)return;
+  $('dTitle').textContent=c.name+' 的订单';
+  $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
+    <div>证件号：<b>${c.id_card}</b>（${maskId(c.id_card)}）</div>
+    <div>出生：${c.birth} · ${c.gender} · ${ageFromBirth(c.birth)}岁</div>
+    <div>状态：${c.status==='跟进中'?'<span class="tag tag-following">跟进中</span>':c.status==='成功'?'<span class="tag tag-success">成功</span>':'<span class="tag tag-fail">失败</span>'}</div>
+    <div>创建：${c.created_at} · 最后跟进：${c.last_follow_at||'—'}</div>
+    <div>距超时：${c.status==='跟进中'?remaining(c)+' 天':'已结束'}</div></div>`;
+  const mk=(s,cls)=>`<button class="btn btn-sm ${cls}" onclick="setStatus('${s}')">${s==='成功'?'标记成功':s==='失败'?'标记失败':'恢复跟进'}</button>`;
+  $('dStatusBtns').innerHTML = c.status==='跟进中'? mk('成功','btn-success')+mk('失败','btn-danger')
+    : mk('跟进中','btn-ghost')+mk('成功','btn-success')+mk('失败','btn-danger');
+  $('dFollowNote').value=''; $('dFollowErr').style.display='none';
+  $('dTimeline').innerHTML = (c.follow_ups||[]).slice().reverse().map(fl=>`<div class="timeline-item"><div class="timeline-date">${fl.date}</div><div class="timeline-note">${fl.note}</div></div>`).join('') || '<div class="empty">暂无跟进记录</div>';
+  $('dDeleteBtn').onclick=()=>{ if(confirm('确定删除该客户？此操作不可恢复。')) deleteCustomer(id); };
+  showModal('detailModal');
+};
+window.setStatus=async s=>{
+  const c=customers.find(x=>x.id===currentCustId); if(!c)return;
+  c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
+  if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
+  await saveCustomer(c); closeModal('detailModal'); toast('状态已更新为：'+s);
+};
+window.addFollowUp=async()=>{
+  const note=$('dFollowNote').value.trim();
+  if(!note){ $('dFollowErr').style.display='block'; return; }
+  const c=customers.find(x=>x.id===currentCustId); if(!c)return;
+  c.follow_ups.push({date:todayStr(),note}); c.last_follow_at=todayStr();
+  await saveCustomer(c); toast('已记录，今日跟进完成'); openDetail(c.id);
+};
+window.exportCSV=()=>{
+  const head=['姓名','身份证号','出生日期','性别','状态','创建日期','最后跟进'];
+  const rows=customers.map(c=>[c.name,c.id_card,c.birth,c.gender,c.status,c.created_at,c.last_follow_at||'']);
+  const csv=[head,...rows].map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv'}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='客户导出_'+todayStr()+'.csv'; a.click(); toast('已导出 CSV');
+};
+
+/* ============ UI 辅助 ============ */
+function showModal(id){ $(id).classList.add('show'); }
+window.closeModal=id=>$(id).classList.remove('show');
+window.addEventListener('click',e=>{ if(e.target.classList.contains('modal-mask'))e.target.classList.remove('show'); });
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  const t=b.dataset.tab; $('page-workbench').style.display=t==='workbench'?'':'none'; $('page-customers').style.display=t==='customers'?'':'none';
+});
+$('searchInput').oninput=renderTable;
+$('statusFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('statusFilter').querySelectorAll('button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderTable(); });
+
+/* ============ 启动 ============ */
+(async()=>{
+  $('todayLabel').textContent='今天 '+todayStr();
+  if(SUPABASE_URL.includes('NEW_PROJECT_URL')){
+    $('connBar').innerHTML='⚠ 尚未配置 Supabase（见 README）。';
+    return;
+  }
+  try{
+    supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    $('connBar').style.display='none'; $('app').style.display='';
+    await loadData();
+  }catch(err){ $('connBar').textContent='连接出错：'+err.message; }
+})();
+</script>
+</body>
+</html>

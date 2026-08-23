@@ -328,9 +328,12 @@ function renderTodo(){
   if(!list.length){ $('todoList').innerHTML='<div class="empty">🎉 太棒了！今天需要跟进的客户已全部处理完</div>'; return; }
   $('todoList').innerHTML=list.map(c=>{
     const d=remaining(c);
+    const last=c.follow_ups&&c.follow_ups.length?c.follow_ups[c.follow_ups.length-1]:null;
+    const noteHtml=last?`<div class="meta" style="margin-top:5px;color:var(--text);">💬 ${last.date}：${last.note}</div>`:`<div class="meta" style="margin-top:5px;color:var(--text3);">暂无跟进备注</div>`;
     return `<div class="cust-item">
       <div class="info"><div class="name">${c.name} <span class="days-left ${daysLeftClass(d)}">剩${d}天</span></div>
-      <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${c.created_at}</span><span>已跟进 ${c.follow_ups.length} 次</span></div></div>
+      <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${c.created_at}</span><span>已跟进 ${c.follow_ups.length} 次</span></div>
+      ${noteHtml}</div>
       <div class="ops"><button class="btn btn-primary btn-sm" onclick="openDetail('${c.id}')">跟进</button></div>
     </div>`;
   }).join('');
@@ -372,10 +375,16 @@ window.openCreateModal=()=>{ $('cName').value='';$('cIdcard').value='';$('cNote'
 window.createCustomer=async()=>{
   const name=$('cName').value.trim(), idcard=$('cIdcard').value.trim(), note=$('cNote').value.trim();
   if(!name){ return toast('请填写姓名'); }
-  const v=validateIdCard(idcard);
-  if(!v.ok){ $('cIdcardTip').textContent='⚠ '+v.msg; $('cIdcardTip').style.color='var(--danger)'; return; }
+  let birth=null, gender=null;
+  if(idcard){                       // 身份证非必填：填了才校验
+    const v=validateIdCard(idcard);
+    if(!v.ok){ $('cIdcardTip').textContent='⚠ '+v.msg; $('cIdcardTip').style.color='var(--danger)'; return; }
+    birth=v.birth; gender=v.gender;
+  } else {
+    $('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('cIdcardTip').style.color='var(--text3)';
+  }
   const today=todayStr();
-  await saveCustomer({ name, id_card:idcard, birth:v.birth, gender:v.gender, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] });
+  await saveCustomer({ name, id_card:idcard||null, birth, gender, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] });
   closeModal('createModal'); toast('已创建并开始跟进');
 };
 window.openDetail=id=>{

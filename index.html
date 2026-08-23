@@ -258,7 +258,7 @@ function ageFromBirth(birth){ const b=new Date(birth), n=new Date(); let a=n.get
 function maskId(id){ return id.slice(0,6)+'********'+id.slice(14); }
 
 /* ============ Supabase 实例 ============ */
-let supabase, customers=[];
+let supabase, customers=[], currentCustId=null;
 
 /* ============ 自动判失败：客户端执行 ============ */
 function autoFail(){

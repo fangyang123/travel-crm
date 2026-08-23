@@ -337,6 +337,9 @@ function renderTodo(){
       <div class="ops"><button class="btn btn-primary btn-sm" data-open="${c.id}">跟进</button></div>
     </div>`;
   }).join('');
+  $('todoList').querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click', ()=>openDetail(b.dataset.open));
+  });
 }
 function renderBday(){
   const list=birthdayList();
@@ -368,6 +371,9 @@ function renderTable(){
       <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-open="${c.id}">详情</button></td>
     </tr>`;
   }).join('');
+  $('custTable').querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click', ()=>openDetail(b.dataset.open));
+  });
 }
 
 /* ============ 弹窗 / 操作 ============ */
@@ -388,7 +394,8 @@ window.createCustomer=async()=>{
   closeModal('createModal'); toast('已创建并开始跟进');
 };
 window.openDetail=id=>{
-  currentCustId=id; const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+ try{
+  currentCustId=id; const c=customers.find(x=>String(x.id)===String(id)); if(!c){ toast('未找到该客户(id='+id+')'); return; }
   $('dTitle').textContent=c.name+' 的订单';
   $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
     <div>证件号：<b>${c.id_card}</b>（${maskId(c.id_card)}）</div>
@@ -403,9 +410,10 @@ window.openDetail=id=>{
   $('dTimeline').innerHTML = (c.follow_ups||[]).slice().reverse().map(fl=>`<div class="timeline-item"><div class="timeline-date">${fl.date}</div><div class="timeline-note">${fl.note}</div></div>`).join('') || '<div class="empty">暂无跟进记录</div>';
   $('dDeleteBtn').onclick=()=>{ if(confirm('确定删除该客户？此操作不可恢复。')) deleteCustomer(id); };
   showModal('detailModal');
+ }catch(err){ toast('打开详情出错：'+err.message); console.error(err); }
 };
 window.setStatus=async s=>{
-  const c=customers.find(x=>x.id===currentCustId); if(!c)return;
+  const c=customers.find(x=>String(x.id)===String(currentCustId)); if(!c)return;
   c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
   if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
   await saveCustomer(c); closeModal('detailModal'); toast('状态已更新为：'+s);
@@ -413,7 +421,7 @@ window.setStatus=async s=>{
 window.addFollowUp=async()=>{
   const note=$('dFollowNote').value.trim();
   if(!note){ $('dFollowErr').style.display='block'; return; }
-  const c=customers.find(x=>x.id===currentCustId); if(!c)return;
+  const c=customers.find(x=>String(x.id)===String(currentCustId)); if(!c)return;
   c.follow_ups.push({date:todayStr(),note}); c.last_follow_at=todayStr();
   await saveCustomer(c); toast('已记录，今日跟进完成'); openDetail(c.id);
 };

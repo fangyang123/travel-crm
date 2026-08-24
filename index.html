@@ -334,11 +334,18 @@ function renderTodo(){
       <div class="info"><div class="name">${c.name} <span class="days-left ${daysLeftClass(d)}">剩${d}天</span></div>
       <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${c.created_at}</span><span>已跟进 ${c.follow_ups.length} 次</span></div>
       ${noteHtml}</div>
-      <div class="ops"><button class="btn btn-primary btn-sm" data-open="${c.id}">跟进</button></div>
+      <div class="ops">
+        <button class="btn btn-primary btn-sm" data-open="${c.id}">跟进</button>
+        <button class="btn btn-success btn-sm" data-qs="${c.id}|成功">成功</button>
+        <button class="btn btn-danger btn-sm" data-qs="${c.id}|失败">失败</button>
+      </div>
     </div>`;
   }).join('');
   $('todoList').querySelectorAll('[data-open]').forEach(b=>{
     b.addEventListener('click', ()=>openDetail(b.dataset.open));
+  });
+  $('todoList').querySelectorAll('[data-qs]').forEach(b=>{
+    b.addEventListener('click', ()=>{ const [id,s]=b.dataset.qs.split('|'); quickStatus(id,s); });
   });
 }
 function renderBday(){
@@ -417,6 +424,12 @@ window.setStatus=async s=>{
   c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
   if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
   await saveCustomer(c); closeModal('detailModal'); toast('状态已更新为：'+s);
+};
+window.quickStatus=async(id,s)=>{
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
+  if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
+  await saveCustomer(c); toast('已标记为：'+s);
 };
 window.addFollowUp=async()=>{
   const note=$('dFollowNote').value.trim();

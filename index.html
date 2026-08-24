@@ -255,7 +255,7 @@ function validateIdCard(id){
   return {ok:true, birth:y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'), gender:(+id[16])%2===1?'男':'女'};
 }
 function ageFromBirth(birth){ const b=new Date(birth), n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--; return a; }
-function maskId(id){ return id.slice(0,6)+'********'+id.slice(14); }
+function maskId(id){ return id? id.slice(0,6)+'********'+id.slice(14) : '—'; }
 
 /* ============ Supabase 实例 ============ */
 let supabase, customers=[], currentCustId=null;
@@ -399,7 +399,7 @@ window.openDetail=id=>{
   $('dTitle').textContent=c.name+' 的订单';
   $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
     <div>证件号：<b>${c.id_card}</b>（${maskId(c.id_card)}）</div>
-    <div>出生：${c.birth} · ${c.gender} · ${ageFromBirth(c.birth)}岁</div>
+    <div>出生：${c.birth||'—'} · ${c.gender||'—'} · ${c.birth?ageFromBirth(c.birth)+'岁':'—'}</div>
     <div>状态：${c.status==='跟进中'?'<span class="tag tag-following">跟进中</span>':c.status==='成功'?'<span class="tag tag-success">成功</span>':'<span class="tag tag-fail">失败</span>'}</div>
     <div>创建：${c.created_at} · 最后跟进：${c.last_follow_at||'—'}</div>
     <div>距超时：${c.status==='跟进中'?remaining(c)+' 天':'已结束'}</div></div>`;

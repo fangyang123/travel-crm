@@ -15,15 +15,44 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-.header{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15);}
-.header h1{font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.layout{display:flex;min-height:100vh;}
+/* ============ 侧边栏 ============ */
+.sidebar{width:236px;flex-shrink:0;background:#0f172a;color:#cbd5e1;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;padding:18px 12px;}
+.sidebar .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 18px;font-size:16px;font-weight:600;color:#fff;}
+.sidebar .brand .logo{font-size:22px;}
+.sidebar .nav-group{margin-bottom:6px;}
+.sidebar .nav-parent{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;background:transparent;color:#e2e8f0;font-size:15px;font-weight:600;padding:11px 12px;border-radius:9px;cursor:pointer;font-family:inherit;transition:.15s;}
+.sidebar .nav-parent:hover{background:rgba(255,255,255,.07);}
+.sidebar .nav-parent .arrow{transition:.2s;font-size:12px;opacity:.7;}
+.sidebar .nav-parent.collapsed .arrow{transform:rotate(-90deg);}
+.sidebar .sub-list{overflow:hidden;}
+.sidebar .sub-list.hide{display:none;}
+.sidebar .nav-item{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;background:transparent;color:#cbd5e1;font-size:14px;padding:9px 12px 9px 30px;border-radius:9px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s;margin-top:2px;}
+.sidebar .nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sidebar .nav-item.active{background:var(--primary);color:#fff;font-weight:600;}
+.sidebar .nav-item .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;font-size:11px;padding:0 6px;line-height:17px;min-width:17px;text-align:center;font-weight:600;}
+.sidebar .nav-item.active .badge{background:#fff;color:var(--danger);}
+.sidebar .nav-item .badge.zero{display:none;}
+.sidebar .nav-single{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;background:transparent;color:#e2e8f0;font-size:15px;font-weight:600;padding:11px 12px;border-radius:9px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s;margin-top:4px;}
+.sidebar .nav-single:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sidebar .nav-single.active{background:var(--primary);color:#fff;}
+.sidebar .nav-single .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;font-size:11px;padding:0 6px;line-height:17px;min-width:17px;text-align:center;font-weight:600;}
+.sidebar .nav-single.active .badge{background:#fff;color:var(--danger);}
+.sidebar .nav-single .badge.zero{display:none;}
+.sidebar .side-foot{margin-top:auto;padding:14px 10px 4px;font-size:11.5px;color:#64748b;border-top:1px solid rgba(255,255,255,.08);}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.header{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.header h1{font-size:19px;font-weight:600;display:flex;align-items:center;gap:10px;}
 .header .date{font-size:13px;opacity:.85;}
 .header .spacer{flex:1;}
-.tabs{display:flex;gap:4px;background:rgba(255,255,255,.15);border-radius:10px;padding:4px;}
-.tabs button{border:none;background:transparent;color:#fff;padding:7px 18px;border-radius:8px;cursor:pointer;font-size:14px;transition:.15s;}
-.tabs button.active{background:#fff;color:var(--primary);font-weight:600;}
-.tabs button .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;font-size:11px;padding:0 6px;margin-left:5px;line-height:17px;min-width:17px;text-align:center;}
-.container{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+.container{max-width:1100px;width:100%;margin:0 auto;padding:20px 16px 60px;}
+@media(max-width:760px){
+  .layout{flex-direction:column;}
+  .sidebar{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px;}
+  .sidebar .brand{width:100%;padding-bottom:8px;}
+  .sidebar .nav-group,.sidebar .nav-single{margin:0 4px;}
+  .sidebar .side-foot{display:none;}
+}
 
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
 .stat-card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
@@ -119,65 +148,87 @@ tr:hover td{background:#f8fafc;}
 </head>
 <body>
 
-<div class="header">
-  <h1>🧳 旅游客户信息系统</h1>
-  <span class="date" id="todayLabel"></span>
-  <div class="spacer"></div>
-  <div class="tabs">
-    <button class="active" data-tab="workbench">今日工作台</button>
-    <button data-tab="customers">客户管理<span class="badge" id="pendingBadge" style="display:none"></span></button>
-  </div>
-</div>
-
-<div class="container" id="connBar">正在连接云数据库…</div>
-
-<div class="container" id="app" style="display:none;">
-  <!-- 工作台 -->
-  <div id="page-workbench">
-    <div class="stats" id="statsRow"></div>
-    <div class="panel">
-      <h2><span class="icon" style="background:var(--warn-bg);">📋</span>今日待跟进 <span class="tag tag-following" id="todoCount"></span></h2>
-      <div class="sub">以下客户状态尚未更新（今天还没跟进），请逐个跟进处理</div>
-      <div id="todoList"></div>
-    </div>
-    <div class="panel">
-      <h2><span class="icon" style="background:#fce7f3;">🎂</span>今日生日客户 <span class="tag tag-birthday" id="bdayCount"></span></h2>
-      <div class="sub">根据身份证出生日期（公历）自动匹配，记得送上生日祝福</div>
-      <div id="bdayList"></div>
-    </div>
-    <div class="panel">
-      <h2><span class="icon" style="background:#e0f2fe;">🛡️</span>待购保险 <span class="tag tag-insurance" id="insCount"></span></h2>
-      <div class="sub">成功订单且出游日期在 3 天内（含今天），请提醒客户购买出游保险</div>
-      <div id="insList"></div>
-    </div>
-  </div>
-
-  <!-- 客户管理 -->
-  <div id="page-customers" style="display:none;">
-    <div class="toolbar">
-      <input type="text" id="searchInput" placeholder="搜索姓名或身份证号…">
-      <div class="seg" id="statusFilter">
-        <button data-f="all" class="active">全部</button>
-        <button data-f="跟进中">跟进中</button>
-        <button data-f="成功">成功</button>
-        <button data-f="失败">失败</button>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">🧳</span><span>旅游客户系统</span></div>
+    <div class="nav-group">
+      <button class="nav-parent" id="wbParent">📊 今日工作台 <span class="arrow">▾</span></button>
+      <div class="sub-list" id="wbSubs">
+        <button class="nav-item active" data-page="todo"><span>今日待跟进</span><span class="badge zero" id="badgeTodo">0</span></button>
+        <button class="nav-item" data-page="bday"><span>今日生日客户</span><span class="badge zero" id="badgeBday">0</span></button>
+        <button class="nav-item" data-page="ins"><span>待购保险</span><span class="badge zero" id="badgeIns">0</span></button>
       </div>
-      <button class="btn btn-primary" onclick="openCreateModal()">＋ 新建客户</button>
-      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">导出CSV</button>
     </div>
-    <div class="panel" style="padding:8px 12px;">
-      <table>
-        <thead><tr>
-          <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
-          <th>出游/保险</th><th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
-        </tr></thead>
-        <tbody id="custTable"></tbody>
-      </table>
-      <div class="empty" id="tableEmpty" style="display:none;">暂无客户，点击右上角「新建客户」开始</div>
+    <button class="nav-single" data-page="customers"><span>👥 客户管理</span><span class="badge zero" id="badgeCust">0</span></button>
+    <div class="side-foot">数据保存在 Supabase 云端<br>创建满 15 天未出结果自动判失败</div>
+  </aside>
+
+  <div class="main">
+    <div class="header">
+      <h1 id="pageTitle">今日待跟进</h1>
+      <span class="date" id="todayLabel"></span>
+      <div class="spacer"></div>
+    </div>
+
+    <div class="container" id="connBar">正在连接云数据库…</div>
+
+    <div class="container" id="app" style="display:none;">
+      <!-- 今日待跟进 -->
+      <div id="page-todo">
+        <div class="stats" id="statsRow"></div>
+        <div class="panel">
+          <h2><span class="icon" style="background:var(--warn-bg);">📋</span>今日待跟进 <span class="tag tag-following" id="todoCount"></span></h2>
+          <div class="sub">以下客户状态尚未更新（今天还没跟进），请逐个跟进处理</div>
+          <div id="todoList"></div>
+        </div>
+      </div>
+
+      <!-- 今日生日客户 -->
+      <div id="page-bday" style="display:none;">
+        <div class="panel">
+          <h2><span class="icon" style="background:#fce7f3;">🎂</span>今日生日客户 <span class="tag tag-birthday" id="bdayCount"></span></h2>
+          <div class="sub">根据身份证出生日期（公历）自动匹配，记得送上生日祝福</div>
+          <div id="bdayList"></div>
+        </div>
+      </div>
+
+      <!-- 待购保险 -->
+      <div id="page-ins" style="display:none;">
+        <div class="panel">
+          <h2><span class="icon" style="background:#e0f2fe;">🛡️</span>待购保险 <span class="tag tag-insurance" id="insCount"></span></h2>
+          <div class="sub">成功订单且出游日期在 3 天内（含今天），请提醒客户购买出游保险</div>
+          <div id="insList"></div>
+        </div>
+      </div>
+
+      <!-- 客户管理 -->
+      <div id="page-customers" style="display:none;">
+        <div class="toolbar">
+          <input type="text" id="searchInput" placeholder="搜索姓名或身份证号…">
+          <div class="seg" id="statusFilter">
+            <button data-f="all" class="active">全部</button>
+            <button data-f="跟进中">跟进中</button>
+            <button data-f="成功">成功</button>
+            <button data-f="失败">失败</button>
+          </div>
+          <button class="btn btn-primary" onclick="openCreateModal()">＋ 新建客户</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">导出CSV</button>
+        </div>
+        <div class="panel" style="padding:8px 12px;">
+          <table>
+            <thead><tr>
+              <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
+              <th>出游/保险</th><th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
+            </tr></thead>
+            <tbody id="custTable"></tbody>
+          </table>
+          <div class="empty" id="tableEmpty" style="display:none;">暂无客户，点击右上角「新建客户」开始</div>
+        </div>
+      </div>
+
+      <div class="footer-note" style="text-align:center;color:var(--text3);font-size:12.5px;padding:10px 0 0;">数据保存在 Supabase 云端 · 创建满 15 天未出结果将自动判定为失败</div>
     </div>
   </div>
-
-  <div class="footer-note" style="text-align:center;color:var(--text3);font-size:12.5px;padding:10px 0 0;">数据保存在 Supabase 云端 · 创建满 15 天未出结果将自动判定为失败</div>
 </div>
 
 <!-- 新建客户 -->
@@ -357,7 +408,17 @@ function daysLeftClass(d){ return d<=3?'urgent':d<=7?'warn':'ok'; }
 
 /* ============ 渲染 ============ */
 function render(){
-  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderTable();
+  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderTable(); renderBadges();
+}
+function setBadge(id, n){
+  const el=$(id); el.textContent=n;
+  el.classList.toggle('zero', n===0);
+}
+function renderBadges(){
+  setBadge('badgeTodo', pendingList().length);
+  setBadge('badgeBday', birthdayList().length);
+  setBadge('badgeIns', insuranceList().length);
+  setBadge('badgeCust', customers.length);
 }
 function renderStats(){
   const cs=customers, f=cs.filter(c=>c.status==='跟进中').length, s=cs.filter(c=>c.status==='成功').length, fa=cs.filter(c=>c.status==='失败').length;
@@ -372,7 +433,6 @@ function renderStats(){
 function renderTodo(){
   const list=pendingList();
   $('todoCount').textContent=list.length+' 位';
-  const badge=$('pendingBadge'); badge.style.display=list.length?'':'none'; badge.textContent=list.length;
   if(!list.length){ $('todoList').innerHTML='<div class="empty">🎉 太棒了！今天需要跟进的客户已全部处理完</div>'; return; }
   $('todoList').innerHTML=list.map(c=>{
     const d=remaining(c);
@@ -586,10 +646,29 @@ document.addEventListener('click', e=>{
 function showModal(id){ $(id).classList.add('show'); }
 window.closeModal=id=>$(id).classList.remove('show');
 window.addEventListener('click',e=>{ if(e.target.classList.contains('modal-mask'))e.target.classList.remove('show'); });
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
-  const t=b.dataset.tab; $('page-workbench').style.display=t==='workbench'?'':'none'; $('page-customers').style.display=t==='customers'?'':'none';
-});
+/* ============ 侧边栏导航 ============ */
+const PAGE_TITLE={todo:'今日待跟进', bday:'今日生日客户', ins:'待购保险', customers:'客户管理'};
+const PAGES=['todo','bday','ins','customers'];
+function switchPage(p){
+  document.querySelectorAll('.sidebar .nav-item, .sidebar .nav-single').forEach(x=>x.classList.remove('active'));
+  const btn=document.querySelector('.sidebar [data-page="'+p+'"]');
+  if(btn) btn.classList.add('active');
+  PAGES.forEach(pg=>{ $('page-'+pg).style.display=pg===p?'':'none'; });
+  $('pageTitle').textContent=PAGE_TITLE[p]||'';
+}
+/* 子菜单点击 */
+document.querySelectorAll('.sidebar .nav-item').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
+/* 客户管理点击 */
+document.querySelector('.nav-single[data-page="customers"]').onclick=()=>switchPage('customers');
+/* 父菜单：展开/收起 + 跳到第一个子项 */
+$('wbParent').onclick=()=>{
+  const subs=$('wbSubs'); const collapsed=$('wbParent').classList.toggle('collapsed');
+  subs.classList.toggle('hide', collapsed);
+  if(!collapsed){
+    const active=document.querySelector('.sidebar .nav-item.active');
+    switchPage(active?active.dataset.page:'todo');
+  }
+};
 $('searchInput').oninput=renderTable;
 $('statusFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('statusFilter').querySelectorAll('button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderTable(); });
 

@@ -55,6 +55,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .tag-success{background:var(--success-bg);color:var(--success);}
 .tag-fail{background:var(--danger-bg);color:var(--danger);}
 .tag-birthday{background:#fce7f3;color:#db2777;}
+.tag-insurance{background:#e0f2fe;color:#0369a1;}
 .tag-auto{background:var(--danger-bg);color:var(--danger);font-size:11px;margin-left:4px;}
 
 .btn{border:none;border-radius:8px;padding:8px 16px;font-size:14px;cursor:pointer;transition:.15s;font-family:inherit;}
@@ -144,6 +145,11 @@ tr:hover td{background:#f8fafc;}
       <div class="sub">根据身份证出生日期（公历）自动匹配，记得送上生日祝福</div>
       <div id="bdayList"></div>
     </div>
+    <div class="panel">
+      <h2><span class="icon" style="background:#e0f2fe;">🛡️</span>待购保险 <span class="tag tag-insurance" id="insCount"></span></h2>
+      <div class="sub">成功订单且出游日期在 3 天内（含今天），请提醒客户购买出游保险</div>
+      <div id="insList"></div>
+    </div>
   </div>
 
   <!-- 客户管理 -->
@@ -163,7 +169,7 @@ tr:hover td{background:#f8fafc;}
       <table>
         <thead><tr>
           <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
-          <th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
+          <th>出游/保险</th><th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
         </tr></thead>
         <tbody id="custTable"></tbody>
       </table>
@@ -222,6 +228,48 @@ tr:hover td{background:#f8fafc;}
       <div style="margin-top:14px;">
         <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">跟进历史</div>
         <div class="timeline" id="dTimeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 标记失败：填写原因 -->
+<div class="modal-mask" id="failModal">
+  <div class="modal">
+    <div class="modal-head"><h3>标记失败 · 填写原因</h3><button class="modal-close" onclick="closeModal('failModal')">×</button></div>
+    <div class="modal-body">
+      <div class="sub" id="failCustName" style="margin-bottom:12px;"></div>
+      <div class="form-item">
+        <label>失败原因 *</label>
+        <textarea id="failReason" rows="3" placeholder="如：客户无出游意向 / 价格超预算 / 已选其他旅行社…"></textarea>
+        <div id="failErr" style="display:none;color:var(--danger);font-size:12.5px;margin-top:4px;">请填写失败原因</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('failModal')">取消</button>
+        <button class="btn btn-danger" id="failConfirmBtn">确认标记失败</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 标记成功：填写出游信息 -->
+<div class="modal-mask" id="successModal">
+  <div class="modal">
+    <div class="modal-head"><h3>标记成功 · 填写出游信息</h3><button class="modal-close" onclick="closeModal('successModal')">×</button></div>
+    <div class="modal-body">
+      <div class="sub" id="successCustName" style="margin-bottom:12px;"></div>
+      <div class="form-item">
+        <label>出游日期 *</label>
+        <input type="date" id="travelDate">
+      </div>
+      <div class="form-item">
+        <label>出游地点 *</label>
+        <input type="text" id="travelLocation" placeholder="如：云南大理、泰国曼谷" maxlength="60">
+        <div id="successErr" style="display:none;color:var(--danger);font-size:12.5px;margin-top:4px;">请填写出游日期和地点</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('successModal')">取消</button>
+        <button class="btn btn-success" id="successConfirmBtn">确认标记成功</button>
       </div>
     </div>
   </div>
@@ -309,7 +357,7 @@ function daysLeftClass(d){ return d<=3?'urgent':d<=7?'warn':'ok'; }
 
 /* ============ 渲染 ============ */
 function render(){
-  renderStats(); renderTodo(); renderBday(); renderTable();
+  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderTable();
 }
 function renderStats(){
   const cs=customers, f=cs.filter(c=>c.status==='跟进中').length, s=cs.filter(c=>c.status==='成功').length, fa=cs.filter(c=>c.status==='失败').length;
@@ -356,6 +404,45 @@ function renderBday(){
     <div class="bday-card"><div class="bday-emoji">🎂</div>
       <div><div class="name">${c.name}</div><div class="msg">${ageFromBirth(c.birth)} 岁 · ${maskId(c.id_card)}</div></div></div>`).join('')+`</div>`;
 }
+function insuranceList(){
+  const t=todayStr();
+  return customers.filter(c=>{
+    if(c.status!=='成功'||!c.travel_date) return false;
+    if(c.insurance_bought) return false;
+    const d=daysBetween(t, c.travel_date);
+    return d>=0 && d<=3;
+  });
+}
+function renderInsurance(){
+  const list=insuranceList();
+  $('insCount').textContent=list.length+' 单';
+  if(!list.length){ $('insList').innerHTML='<div class="empty">✅ 暂无需要在 3 天内提醒购保险的订单</div>'; return; }
+  $('insList').innerHTML=list.map(c=>{
+    const d=daysBetween(todayStr(), c.travel_date);
+    const leftTxt = d===0?'今天出游':('还有 '+d+' 天出游');
+    return `<div class="cust-item">
+      <div class="info"><div class="name">${c.name} <span class="days-left urgent">${leftTxt}</span></div>
+      <div class="meta"><span>📍 ${c.travel_location||'—'}</span><span>出游日 ${c.travel_date}</span><span>${maskId(c.id_card)}</span></div></div>
+      <div class="ops">
+        <button class="btn btn-success btn-sm" data-buy="${c.id}">已购保险</button>
+        <button class="btn btn-primary btn-sm" data-open="${c.id}">详情</button>
+      </div>
+    </div>`;
+  }).join('');
+  $('insList').querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click', ()=>openDetail(b.dataset.open));
+  });
+  $('insList').querySelectorAll('[data-buy]').forEach(b=>{
+    b.addEventListener('click', ()=>markInsurance(b.dataset.buy));
+  });
+}
+window.markInsurance=async id=>{
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  if(!confirm('确认该客户已购买出游保险？确认后将从提醒列表移除。')) return;
+  c.insurance_bought=true;
+  c.follow_ups.push({date:todayStr(),note:'已购出游保险'});
+  await saveCustomer(c); toast('已标记为已购保险');
+};
 function renderTable(){
   const kw=$('searchInput').value.trim().toLowerCase();
   const f=$('statusFilter').querySelector('.active').dataset.f;
@@ -373,7 +460,9 @@ function renderTable(){
     return `<tr>
       <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
       <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
-      <td>${tag}</td><td>${c.created_at}</td><td>${c.last_follow_at||'—'}</td>
+      <td>${tag}</td>
+      <td>${c.status==='成功'?(c.travel_date||'—')+' · '+(c.travel_location||'—')+' · '+(c.insurance_bought?'<span class="tag tag-success">已购</span>':'<span class="tag tag-insurance">待购</span>'):'—'}</td>
+      <td>${c.created_at}</td><td>${c.last_follow_at||'—'}</td>
       <td>${st==='跟进中'?'<span class="days-left '+daysLeftClass(d)+'">'+d+'天</span>':'—'}</td>
       <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-open="${c.id}">详情</button></td>
     </tr>`;
@@ -409,7 +498,10 @@ window.openDetail=id=>{
     <div>出生：${c.birth||'—'} · ${c.gender||'—'} · ${c.birth?ageFromBirth(c.birth)+'岁':'—'}</div>
     <div>状态：${c.status==='跟进中'?'<span class="tag tag-following">跟进中</span>':c.status==='成功'?'<span class="tag tag-success">成功</span>':'<span class="tag tag-fail">失败</span>'}</div>
     <div>创建：${c.created_at} · 最后跟进：${c.last_follow_at||'—'}</div>
-    <div>距超时：${c.status==='跟进中'?remaining(c)+' 天':'已结束'}</div></div>`;
+    <div>距超时：${c.status==='跟进中'?remaining(c)+' 天':'已结束'}</div>
+    ${c.status==='失败'&&c.fail_reason?`<div style="color:var(--danger);">失败原因：${c.fail_reason}</div>`:''}
+    ${c.status==='成功'?`<div>出游：${c.travel_date||'—'} · ${c.travel_location||'—'} · ${c.insurance_bought?'<span class="tag tag-success">已购保险</span>':'<span class="tag tag-insurance">待购保险</span>'}</div>`:''}
+    </div>`;
   const mk=(s,cls)=>`<button class="btn btn-sm ${cls}" onclick="setStatus('${s}')">${s==='成功'?'标记成功':s==='失败'?'标记失败':'恢复跟进'}</button>`;
   $('dStatusBtns').innerHTML = c.status==='跟进中'? mk('成功','btn-success')+mk('失败','btn-danger')
     : mk('跟进中','btn-ghost')+mk('成功','btn-success')+mk('失败','btn-danger');
@@ -419,18 +511,57 @@ window.openDetail=id=>{
   showModal('detailModal');
  }catch(err){ toast('打开详情出错：'+err.message); console.error(err); }
 };
-window.setStatus=async s=>{
+window.setStatus=s=>{
   const c=customers.find(x=>String(x.id)===String(currentCustId)); if(!c)return;
-  c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
-  if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
-  await saveCustomer(c); closeModal('detailModal'); toast('状态已更新为：'+s);
+  if(s==='失败'){ closeModal('detailModal'); openFailModal(c.id); }
+  else if(s==='成功'){ closeModal('detailModal'); openSuccessModal(c.id); }
+  else { doSetStatus(c.id,s); closeModal('detailModal'); }
 };
-window.quickStatus=async(id,s)=>{
+window.quickStatus=(id,s)=>{
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  if(s==='失败'){ openFailModal(id); }
+  else if(s==='成功'){ openSuccessModal(id); }
+  else { doSetStatus(id,s); }
+};
+function openFailModal(id){
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  $('failCustName').textContent='客户：'+c.name;
+  $('failReason').value=''; $('failErr').style.display='none';
+  $('failConfirmBtn').onclick=()=>confirmFail(id);
+  showModal('failModal');
+}
+window.confirmFail=async(id)=>{
+  const reason=$('failReason').value.trim();
+  if(!reason){ $('failErr').style.display='block'; return; }
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  c.status='失败'; c.status_at=todayStr(); c.auto_failed=false; c.fail_reason=reason;
+  c.follow_ups.push({date:todayStr(),note:'状态更新为：失败 · 原因：'+reason});
+  closeModal('failModal');
+  await saveCustomer(c); toast('已标记为失败');
+};
+function openSuccessModal(id){
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  $('successCustName').textContent='客户：'+c.name;
+  $('travelDate').value=c.travel_date||''; $('travelLocation').value=c.travel_location||''; $('successErr').style.display='none';
+  $('successConfirmBtn').onclick=()=>confirmSuccess(id);
+  showModal('successModal');
+}
+window.confirmSuccess=async(id)=>{
+  const td=$('travelDate').value, loc=$('travelLocation').value.trim();
+  if(!td||!loc){ $('successErr').style.display='block'; return; }
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  c.status='成功'; c.status_at=todayStr(); c.auto_failed=false;
+  c.travel_date=td; c.travel_location=loc; c.insurance_bought=false;
+  c.follow_ups.push({date:todayStr(),note:'状态更新为：成功 · 出游 '+td+' '+loc});
+  closeModal('successModal');
+  await saveCustomer(c); toast('已标记为成功，记得提醒购保险');
+};
+async function doSetStatus(id,s){
   const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
   c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
   if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
   await saveCustomer(c); toast('已标记为：'+s);
-};
+}
 window.addFollowUp=async()=>{
   const note=$('dFollowNote').value.trim();
   if(!note){ $('dFollowErr').style.display='block'; return; }
@@ -439,8 +570,8 @@ window.addFollowUp=async()=>{
   await saveCustomer(c); toast('已记录，今日跟进完成'); openDetail(c.id);
 };
 window.exportCSV=()=>{
-  const head=['姓名','身份证号','出生日期','性别','状态','创建日期','最后跟进'];
-  const rows=customers.map(c=>[c.name,c.id_card,c.birth,c.gender,c.status,c.created_at,c.last_follow_at||'']);
+  const head=['姓名','身份证号','出生日期','性别','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
+  const rows=customers.map(c=>[c.name,c.id_card,c.birth,c.gender,c.status,c.fail_reason||'',c.travel_date||'',c.travel_location||'',c.insurance_bought?'是':'否',c.created_at,c.last_follow_at||'']);
   const csv=[head,...rows].map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv'}); const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='客户导出_'+todayStr()+'.csv'; a.click(); toast('已导出 CSV');

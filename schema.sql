@@ -44,3 +44,21 @@ BEGIN
   END IF;
   -- id_card 保留 UNIQUE 即可（允许多个 NULL），无需额外处理
 END $$;
+
+-- ===== 迁移：新增 失败原因 / 成功出游信息 / 保险提醒 字段 =====
+-- 2026-08-24 新增。可重复运行，安全（IF NOT EXISTS 风格）。
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='fail_reason') THEN
+    ALTER TABLE public.customers ADD COLUMN fail_reason text;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='travel_date') THEN
+    ALTER TABLE public.customers ADD COLUMN travel_date text;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='travel_location') THEN
+    ALTER TABLE public.customers ADD COLUMN travel_location text;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='insurance_bought') THEN
+    ALTER TABLE public.customers ADD COLUMN insurance_bought boolean DEFAULT false;
+  END IF;
+END $$;

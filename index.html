@@ -448,7 +448,7 @@ function renderTable(){
   const f=$('statusFilter').querySelector('.active').dataset.f;
   let list=customers.filter(c=>{
     if(f!=='all'&&c.status!==f)return false;
-    if(kw&&!(c.name.toLowerCase().includes(kw)||c.id_card.toLowerCase().includes(kw)))return false;
+    if(kw&&!(c.name.toLowerCase().includes(kw)||(c.id_card&&c.id_card.toLowerCase().includes(kw))))return false;
     return true;
   });
   $('tableEmpty').style.display=list.length?'none':'';

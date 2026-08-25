@@ -679,13 +679,19 @@ function renderNoteList(){
   const list=notes.slice(start, start+NOTE_PAGE_SIZE);
   $('noteListCount').textContent=total+' 条';
   if(!total){ $('noteListAll').innerHTML='<div class="empty">📒 还没有任何便签</div>'; $('notePager').style.display='none'; return; }
-  $('noteListAll').innerHTML=list.map(n=>`
-    <div class="cust-item" style="align-items:center; ${n.done?'opacity:.55;':''}">
-      <div class="info" style="flex:1;">
-        <div class="name" style="font-weight:500;${n.done?'text-decoration:line-through;color:var(--text3);':''}">${escapeHtml(n.content)}</div>
-        <div class="meta" style="margin-top:4px;">创建于 ${n.created_at||'—'} · ${n.done?'<span class="tag tag-fail">已完成</span>':'<span class="tag tag-following">待办</span>'}</div>
-      </div>
-    </div>`).join('');
+  $('noteListAll').innerHTML=`
+    <table>
+      <thead><tr>
+        <th>便签内容</th><th>创建日期</th><th>状态</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(n=>`<tr>
+          <td style="white-space:normal;max-width:440px;${n.done?'color:var(--text3);text-decoration:line-through;':''}">${escapeHtml(n.content)}</td>
+          <td>${n.created_at||'—'}</td>
+          <td>${n.done?'<span class="tag tag-fail">已完成</span>':'<span class="tag tag-following">待办</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
   $('notePageInfo').textContent='第 '+notePage+' / '+pages+' 页（共 '+total+' 条）';
   $('notePager').style.display= pages>1?'flex':'none';
   $('notePrev').disabled = notePage<=1;

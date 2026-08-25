@@ -155,7 +155,8 @@ tr:hover td{background:#f8fafc;}
       <button class="nav-parent" id="wbParent">📊 今日工作台 <span class="arrow">▾</span></button>
       <div class="sub-list" id="wbSubs">
         <button class="nav-item active" data-page="todo"><span>今日待跟进</span><span class="badge zero" id="badgeTodo">0</span></button>
-        <button class="nav-item" data-page="bday"><span>今日生日客户</span><span class="badge zero" id="badgeBday">0</span></button>
+        <button class="nav-item" data-page="bday"><span>生日提醒</span><span class="badge zero" id="badgeBday">0</span></button>
+        <button class="nav-item" data-page="notes"><span>今日便签</span><span class="badge zero" id="badgeNotes">0</span></button>
         <button class="nav-item" data-page="ins"><span>待购保险</span><span class="badge zero" id="badgeIns">0</span></button>
       </div>
     </div>
@@ -183,12 +184,25 @@ tr:hover td{background:#f8fafc;}
         </div>
       </div>
 
-      <!-- 今日生日客户 -->
+      <!-- 生日提醒 -->
       <div id="page-bday" style="display:none;">
         <div class="panel">
-          <h2><span class="icon" style="background:#fce7f3;">🎂</span>今日生日客户 <span class="tag tag-birthday" id="bdayCount"></span></h2>
-          <div class="sub">根据身份证出生日期（公历）自动匹配，记得送上生日祝福</div>
+          <h2><span class="icon" style="background:#fce7f3;">🎂</span>生日提醒 <span class="tag tag-birthday" id="bdayCount"></span></h2>
+          <div class="sub">身份证出生日期（公历）在 15 天内即将到来的客户，记得提前送上生日祝福</div>
           <div id="bdayList"></div>
+        </div>
+      </div>
+
+      <!-- 今日便签 -->
+      <div id="page-notes" style="display:none;">
+        <div class="panel">
+          <h2><span class="icon" style="background:#fef9c3;">📝</span>今日便签 <span class="tag tag-birthday" id="notesCount"></span></h2>
+          <div class="sub">随手记录待办事项，可随时更新内容或标记完成（完成后不再显示）</div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <textarea id="noteInput" rows="2" placeholder="输入一条便签，如：下午给王总回电话确认行程…" style="flex:1;min-width:240px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;font-family:inherit;resize:vertical;"></textarea>
+            <button class="btn btn-primary" onclick="addNote()" style="align-self:flex-end;">＋ 添加便签</button>
+          </div>
+          <div id="notesList"></div>
         </div>
       </div>
 
@@ -218,6 +232,7 @@ tr:hover td{background:#f8fafc;}
           <table>
             <thead><tr>
               <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
+              <th>电话</th><th>地址</th>
               <th>出游/保险</th><th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
             </tr></thead>
             <tbody id="custTable"></tbody>
@@ -246,12 +261,50 @@ tr:hover td{background:#f8fafc;}
         <div class="tip" id="cIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
       </div>
       <div class="form-item">
+        <label>电话号码（选填）</label>
+        <input type="text" id="cPhone" placeholder="如：13800138000" maxlength="20">
+      </div>
+      <div class="form-item">
+        <label>地址（选填）</label>
+        <input type="text" id="cAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
+      </div>
+      <div class="form-item">
         <label>备注（选填）</label>
         <textarea id="cNote" rows="2" placeholder="如：咨询云南线路，预算5000"></textarea>
       </div>
       <div class="modal-foot">
         <button class="btn btn-ghost" onclick="closeModal('createModal')">取消</button>
         <button class="btn btn-primary" onclick="createCustomer()">创建并开始跟进</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 修改客户 -->
+<div class="modal-mask" id="editModal">
+  <div class="modal">
+    <div class="modal-head"><h3>修改客户信息</h3><button class="modal-close" onclick="closeModal('editModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label>客户姓名 *</label>
+        <input type="text" id="eName" placeholder="请输入姓名" maxlength="30">
+      </div>
+      <div class="form-item">
+        <label>身份证号 *</label>
+        <input type="text" id="eIdcard" placeholder="18位身份证号码" maxlength="18">
+        <div class="tip" id="eIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
+      </div>
+      <div class="form-item">
+        <label>电话号码（选填）</label>
+        <input type="text" id="ePhone" placeholder="如：13800138000" maxlength="20">
+      </div>
+      <div class="form-item">
+        <label>地址（选填）</label>
+        <input type="text" id="eAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('editModal')">取消</button>
+        <button class="btn btn-primary" id="editConfirmBtn">保存修改</button>
       </div>
     </div>
   </div>
@@ -357,7 +410,7 @@ function ageFromBirth(birth){ const b=new Date(birth), n=new Date(); let a=n.get
 function maskId(id){ return id? id.slice(0,6)+'********'+id.slice(14) : '—'; }
 
 /* ============ Supabase 实例 ============ */
-let supabase, customers=[], currentCustId=null;
+let supabase, customers=[], currentCustId=null, notes=[];
 
 /* ============ 自动判失败：客户端执行 ============ */
 function autoFail(){
@@ -381,7 +434,14 @@ async function loadData(){
   const {data,error}=await supabase.from('customers').select('*').order('created_at',{ascending:true});
   if(error){ toast('读取失败：'+error.message); return; }
   customers = data.map(r=>({...r, follow_ups: typeof r.follow_ups==='string'?JSON.parse(r.follow_ups):(r.follow_ups||[])}));
-  autoFail(); render();
+  autoFail();
+  await loadNotes();
+  render();
+}
+async function loadNotes(){
+  const {data,error}=await supabase.from('notes').select('*').order('created_at',{ascending:false});
+  if(error){ toast('便签读取失败：'+error.message); return; }
+  notes = data.map(r=>({...r}));
 }
 async function saveCustomer(rec){
   const row={ ...rec, follow_ups:JSON.stringify(rec.follow_ups||[]) };
@@ -402,13 +462,20 @@ async function deleteCustomer(id){
 
 /* ============ 派生计算 ============ */
 function pendingList(){ const t=todayStr(); return customers.filter(c=>c.status==='跟进中'&&c.last_follow_at!==t); }
-function birthdayList(){ const md=todayStr().slice(5); return customers.filter(c=>c.birth&&c.birth.slice(5)===md); }
+function daysToBirthday(birth){
+  if(!birth||!/^\d{4}-\d{2}-\d{2}$/.test(birth)) return null;
+  const now=new Date(); const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  let next=new Date(now.getFullYear(), +birth.slice(5,7)-1, +birth.slice(8,10));
+  if(next < today) next=new Date(now.getFullYear()+1, +birth.slice(5,7)-1, +birth.slice(8,10));
+  return Math.round((next-today)/86400000);
+}
+function birthdayList(){ return customers.filter(c=>{ const d=daysToBirthday(c.birth); return d!==null && d>=0 && d<=15; }); }
 function remaining(c){ return Math.max(0, 15 - daysBetween(c.created_at, todayStr())); }
 function daysLeftClass(d){ return d<=3?'urgent':d<=7?'warn':'ok'; }
 
 /* ============ 渲染 ============ */
 function render(){
-  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderTable(); renderBadges();
+  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderTable(); renderNotes(); renderBadges();
 }
 function setBadge(id, n){
   const el=$(id); el.textContent=n;
@@ -417,6 +484,7 @@ function setBadge(id, n){
 function renderBadges(){
   setBadge('badgeTodo', pendingList().length);
   setBadge('badgeBday', birthdayList().length);
+  setBadge('badgeNotes', notesList().length);
   setBadge('badgeIns', insuranceList().length);
   setBadge('badgeCust', customers.length);
 }
@@ -459,10 +527,14 @@ function renderTodo(){
 function renderBday(){
   const list=birthdayList();
   $('bdayCount').textContent=list.length+' 位';
-  if(!list.length){ $('bdayList').innerHTML='<div class="empty">今天没有客户过生日</div>'; return; }
-  $('bdayList').innerHTML=`<div class="bday-grid">`+list.map(c=>`
-    <div class="bday-card"><div class="bday-emoji">🎂</div>
-      <div><div class="name">${c.name}</div><div class="msg">${ageFromBirth(c.birth)} 岁 · ${maskId(c.id_card)}</div></div></div>`).join('')+`</div>`;
+  if(!list.length){ $('bdayList').innerHTML='<div class="empty">未来 15 天内没有客户过生日 🎉</div>'; return; }
+  $('bdayList').innerHTML=`<div class="bday-grid">`+list.map(c=>{
+    const d=daysToBirthday(c.birth);
+    const txt = d===0?'今天生日！':('还有 '+d+' 天');
+    return `<div class="bday-card"><div class="bday-emoji">🎂</div>
+      <div><div class="name">${c.name} <span class="days-left ${d<=3?'urgent':'warn'}" style="font-size:11px;">${txt}</span></div>
+      <div class="msg">${ageFromBirth(c.birth)} 岁 · ${maskId(c.id_card)}</div></div></div>`;
+  }).join('')+`</div>`;
 }
 function insuranceList(){
   const t=todayStr();
@@ -503,6 +575,53 @@ window.markInsurance=async id=>{
   c.follow_ups.push({date:todayStr(),note:'已购出游保险'});
   await saveCustomer(c); toast('已标记为已购保险');
 };
+
+/* ============ 便签 ============ */
+function notesList(){ return notes.filter(n=>!n.done); }
+function renderNotes(){
+  const list=notesList();
+  $('notesCount').textContent=list.length+' 条';
+  if(!list.length){ $('notesList').innerHTML='<div class="empty">📝 暂无便签，上面输入框随手记一条吧</div>'; return; }
+  $('notesList').innerHTML=list.map(n=>`
+    <div class="cust-item" style="align-items:stretch;">
+      <div class="info" style="flex:1;">
+        <textarea class="note-edit" data-id="${n.id}" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;">${escapeHtml(n.content)}</textarea>
+        <div class="meta" style="margin-top:4px;">创建于 ${n.created_at||'—'}</div>
+      </div>
+      <div class="ops" style="flex-direction:column;justify-content:center;gap:6px;">
+        <button class="btn btn-primary btn-sm" data-update="${n.id}">更新</button>
+        <button class="btn btn-success btn-sm" data-done="${n.id}">完成</button>
+      </div>
+    </div>`).join('');
+  $('notesList').querySelectorAll('[data-update]').forEach(b=>{
+    b.addEventListener('click', ()=>updateNote(b.dataset.update));
+  });
+  $('notesList').querySelectorAll('[data-done]').forEach(b=>{
+    b.addEventListener('click', ()=>completeNote(b.dataset.done));
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+window.addNote=async()=>{
+  const ta=$('noteInput'); const content=ta.value.trim();
+  if(!content){ return toast('请先输入便签内容'); }
+  const today=todayStr();
+  const {error}=await supabase.from('notes').insert({ content, done:false, created_at:today, updated_at:today });
+  if(error)return toast('添加失败：'+error.message);
+  ta.value=''; await loadNotes(); renderNotes(); renderBadges(); toast('已添加便签');
+};
+window.updateNote=async id=>{
+  const ta=document.querySelector('.note-edit[data-id="'+id+'"]'); if(!ta)return;
+  const content=ta.value.trim();
+  if(!content){ return toast('便签内容不能为空'); }
+  const {error}=await supabase.from('notes').update({ content, updated_at:todayStr() }).eq('id',id);
+  if(error)return toast('更新失败：'+error.message);
+  await loadNotes(); renderNotes(); toast('已更新');
+};
+window.completeNote=async id=>{
+  const {error}=await supabase.from('notes').update({ done:true, updated_at:todayStr() }).eq('id',id);
+  if(error)return toast('操作失败：'+error.message);
+  await loadNotes(); renderNotes(); renderBadges(); toast('已完成，已从列表移除');
+};
 function renderTable(){
   const kw=$('searchInput').value.trim().toLowerCase();
   const f=$('statusFilter').querySelector('.active').dataset.f;
@@ -521,21 +640,26 @@ function renderTable(){
       <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
       <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
       <td>${tag}</td>
+      <td>${c.phone||'—'}</td><td>${c.address||'—'}</td>
       <td>${c.status==='成功'?(c.travel_date||'—')+' · '+(c.travel_location||'—')+' · '+(c.insurance_bought?'<span class="tag tag-success">已购</span>':'<span class="tag tag-insurance">待购</span>'):'—'}</td>
       <td>${c.created_at}</td><td>${c.last_follow_at||'—'}</td>
       <td>${st==='跟进中'?'<span class="days-left '+daysLeftClass(d)+'">'+d+'天</span>':'—'}</td>
-      <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-open="${c.id}">详情</button></td>
+      <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-edit="${c.id}">修改</button> <button class="btn btn-ghost btn-sm" data-open="${c.id}">详情</button></td>
     </tr>`;
   }).join('');
   $('custTable').querySelectorAll('[data-open]').forEach(b=>{
     b.addEventListener('click', ()=>openDetail(b.dataset.open));
   });
+  $('custTable').querySelectorAll('[data-edit]').forEach(b=>{
+    b.addEventListener('click', ()=>openEditModal(b.dataset.edit));
+  });
 }
 
 /* ============ 弹窗 / 操作 ============ */
-window.openCreateModal=()=>{ $('cName').value='';$('cIdcard').value='';$('cNote').value='';$('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; showModal('createModal'); };
+window.openCreateModal=()=>{ $('cName').value='';$('cIdcard').value='';$('cPhone').value='';$('cAddress').value='';$('cNote').value='';$('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别';$('cIdcardTip').style.color='var(--text3)'; showModal('createModal'); };
 window.createCustomer=async()=>{
   const name=$('cName').value.trim(), idcard=$('cIdcard').value.trim(), note=$('cNote').value.trim();
+  const phone=$('cPhone').value.trim(), address=$('cAddress').value.trim();
   if(!name){ return toast('请填写姓名'); }
   let birth=null, gender=null;
   if(idcard){                       // 身份证非必填：填了才校验
@@ -546,8 +670,31 @@ window.createCustomer=async()=>{
     $('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('cIdcardTip').style.color='var(--text3)';
   }
   const today=todayStr();
-  await saveCustomer({ name, id_card:idcard||null, birth, gender, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] });
+  await saveCustomer({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] });
   closeModal('createModal'); toast('已创建并开始跟进');
+};
+/* 修改客户信息 */
+window.openEditModal=id=>{
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  $('eName').value=c.name||''; $('eIdcard').value=c.id_card||''; $('ePhone').value=c.phone||''; $('eAddress').value=c.address||'';
+  $('eIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('eIdcardTip').style.color='var(--text3)';
+  $('editConfirmBtn').onclick=()=>saveEditCustomer(id);
+  showModal('editModal');
+};
+window.saveEditCustomer=async id=>{
+  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  const name=$('eName').value.trim(), idcard=$('eIdcard').value.trim();
+  const phone=$('ePhone').value.trim(), address=$('eAddress').value.trim();
+  if(!name){ return toast('请填写姓名'); }
+  let birth=c.birth, gender=c.gender;
+  if(idcard){
+    const v=validateIdCard(idcard);
+    if(!v.ok){ $('eIdcardTip').textContent='⚠ '+v.msg; $('eIdcardTip').style.color='var(--danger)'; return; }
+    birth=v.birth; gender=v.gender;
+  } else { birth=null; gender=null; }
+  c.name=name; c.id_card=idcard||null; c.birth=birth; c.gender=gender; c.phone=phone||null; c.address=address||null;
+  closeModal('editModal');
+  await saveCustomer(c); toast('已保存修改');
 };
 window.openDetail=id=>{
  try{
@@ -556,6 +703,7 @@ window.openDetail=id=>{
   $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
     <div>证件号：<b>${c.id_card}</b>（${maskId(c.id_card)}）</div>
     <div>出生：${c.birth||'—'} · ${c.gender||'—'} · ${c.birth?ageFromBirth(c.birth)+'岁':'—'}</div>
+    <div>电话：${c.phone||'—'} · 地址：${c.address||'—'}</div>
     <div>状态：${c.status==='跟进中'?'<span class="tag tag-following">跟进中</span>':c.status==='成功'?'<span class="tag tag-success">成功</span>':'<span class="tag tag-fail">失败</span>'}</div>
     <div>创建：${c.created_at} · 最后跟进：${c.last_follow_at||'—'}</div>
     <div>距超时：${c.status==='跟进中'?remaining(c)+' 天':'已结束'}</div>
@@ -630,8 +778,8 @@ window.addFollowUp=async()=>{
   await saveCustomer(c); toast('已记录，今日跟进完成'); openDetail(c.id);
 };
 window.exportCSV=()=>{
-  const head=['姓名','身份证号','出生日期','性别','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
-  const rows=customers.map(c=>[c.name,c.id_card,c.birth,c.gender,c.status,c.fail_reason||'',c.travel_date||'',c.travel_location||'',c.insurance_bought?'是':'否',c.created_at,c.last_follow_at||'']);
+  const head=['姓名','身份证号','出生日期','性别','电话','地址','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
+  const rows=customers.map(c=>[c.name,c.id_card,c.birth,c.gender,c.phone||'',c.address||'',c.status,c.fail_reason||'',c.travel_date||'',c.travel_location||'',c.insurance_bought?'是':'否',c.created_at,c.last_follow_at||'']);
   const csv=[head,...rows].map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv'}); const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='客户导出_'+todayStr()+'.csv'; a.click(); toast('已导出 CSV');
@@ -647,8 +795,8 @@ function showModal(id){ $(id).classList.add('show'); }
 window.closeModal=id=>$(id).classList.remove('show');
 window.addEventListener('click',e=>{ if(e.target.classList.contains('modal-mask'))e.target.classList.remove('show'); });
 /* ============ 侧边栏导航 ============ */
-const PAGE_TITLE={todo:'今日待跟进', bday:'今日生日客户', ins:'待购保险', customers:'客户管理'};
-const PAGES=['todo','bday','ins','customers'];
+const PAGE_TITLE={todo:'今日待跟进', bday:'生日提醒', notes:'今日便签', ins:'待购保险', customers:'客户管理'};
+const PAGES=['todo','bday','notes','ins','customers'];
 function switchPage(p){
   document.querySelectorAll('.sidebar .nav-item, .sidebar .nav-single').forEach(x=>x.classList.remove('active'));
   const btn=document.querySelector('.sidebar [data-page="'+p+'"]');

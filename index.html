@@ -394,6 +394,23 @@ tr:hover td{background:#f8fafc;}
   </div>
 </div>
 
+<!-- 修改便签 -->
+<div class="modal-mask" id="noteEditModal">
+  <div class="modal">
+    <div class="modal-head"><h3>修改便签</h3><button class="modal-close" onclick="closeModal('noteEditModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label>便签内容 *</label>
+        <textarea id="neContent" rows="4" placeholder="便签内容"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('noteEditModal')">取消</button>
+        <button class="btn btn-primary" id="neConfirmBtn">保存修改</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script type="module">
@@ -598,19 +615,25 @@ function renderNotes(){
   const list=notesList();
   $('notesCount').textContent=list.length+' 条';
   if(!list.length){ $('notesList').innerHTML='<div class="empty">📝 暂无便签，上面输入框随手记一条吧</div>'; return; }
-  $('notesList').innerHTML=list.map(n=>`
-    <div class="cust-item" style="align-items:stretch;">
-      <div class="info" style="flex:1;">
-        <textarea class="note-edit" data-id="${n.id}" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;">${escapeHtml(n.content)}</textarea>
-        <div class="meta" style="margin-top:4px;">创建于 ${n.created_at||'—'}</div>
-      </div>
-      <div class="ops" style="flex-direction:column;justify-content:center;gap:6px;">
-        <button class="btn btn-primary btn-sm" data-update="${n.id}">更新</button>
-        <button class="btn btn-success btn-sm" data-done="${n.id}">完成</button>
-      </div>
-    </div>`).join('');
+  $('notesList').innerHTML=`
+    <table>
+      <thead><tr>
+        <th>便签内容</th><th>创建日期</th><th>状态</th><th style="text-align:right">操作</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(n=>`<tr>
+          <td style="white-space:normal;max-width:440px;">${escapeHtml(n.content)}</td>
+          <td>${n.created_at||'—'}</td>
+          <td><span class="tag tag-following">待办</span></td>
+          <td style="text-align:right">
+            <button class="btn btn-ghost btn-sm" data-update="${n.id}">修改</button>
+            <button class="btn btn-success btn-sm" data-done="${n.id}">完成</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
   $('notesList').querySelectorAll('[data-update]').forEach(b=>{
-    b.addEventListener('click', ()=>updateNote(b.dataset.update));
+    b.addEventListener('click', ()=>openNoteEditModal(b.dataset.update));
   });
   $('notesList').querySelectorAll('[data-done]').forEach(b=>{
     b.addEventListener('click', ()=>completeNote(b.dataset.done));
@@ -625,13 +648,19 @@ window.addNote=async()=>{
   if(error)return toast('添加失败：'+error.message);
   ta.value=''; await loadNotes(); renderNotes(); renderBadges(); toast('已添加便签');
 };
-window.updateNote=async id=>{
-  const ta=document.querySelector('.note-edit[data-id="'+id+'"]'); if(!ta)return;
-  const content=ta.value.trim();
+window.openNoteEditModal=id=>{
+  const n=notes.find(x=>String(x.id)===String(id)); if(!n)return;
+  $('neContent').value=n.content||'';
+  $('neConfirmBtn').onclick=()=>saveNoteEdit(id);
+  showModal('noteEditModal');
+};
+window.saveNoteEdit=async id=>{
+  const content=$('neContent').value.trim();
   if(!content){ return toast('便签内容不能为空'); }
   const {error}=await supabase.from('notes').update({ content, updated_at:todayStr() }).eq('id',id);
   if(error)return toast('更新失败：'+error.message);
-  await loadNotes(); renderNotes(); toast('已更新');
+  closeModal('noteEditModal');
+  await loadNotes(); renderNotes(); renderNoteList(); renderBadges(); toast('已保存');
 };
 window.completeNote=async id=>{
   const {error}=await supabase.from('notes').update({ done:true, updated_at:todayStr() }).eq('id',id);

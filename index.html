@@ -157,10 +157,10 @@ tr:hover td{background:#f8fafc;}
         <button class="nav-item active" data-page="todo"><span>今日待跟进</span><span class="badge zero" id="badgeTodo">0</span></button>
         <button class="nav-item" data-page="bday"><span>生日提醒</span><span class="badge zero" id="badgeBday">0</span></button>
         <button class="nav-item" data-page="notes"><span>今日便签</span><span class="badge zero" id="badgeNotes">0</span></button>
-        <button class="nav-item" data-page="notelist"><span>便签列表</span><span class="badge zero" id="badgeNoteList">0</span></button>
         <button class="nav-item" data-page="ins"><span>待购保险</span><span class="badge zero" id="badgeIns">0</span></button>
       </div>
     </div>
+    <button class="nav-single" data-page="notelist"><span>📒 便签列表</span><span class="badge zero" id="badgeNoteList">0</span></button>
     <button class="nav-single" data-page="customers"><span>👥 客户管理</span><span class="badge zero" id="badgeCust">0</span></button>
     <div class="side-foot">数据保存在 Supabase 云端<br>创建满 15 天未出结果自动判失败</div>
   </aside>
@@ -207,11 +207,11 @@ tr:hover td{background:#f8fafc;}
         </div>
       </div>
 
-      <!-- 便签列表（全部） -->
+      <!-- 便签列表（全部，只读） -->
       <div id="page-notelist" style="display:none;">
         <div class="panel">
           <h2><span class="icon" style="background:#fef9c3;">📒</span>便签列表 <span class="tag tag-birthday" id="noteListCount"></span></h2>
-          <div class="sub">全部便签（含已完成），每页 10 条；可更新内容或在完成 / 恢复之间切换</div>
+          <div class="sub">全部便签（含已完成），每页 10 条，仅可查看</div>
           <div id="noteListAll"></div>
           <div id="notePager" style="display:none;gap:10px;justify-content:center;align-items:center;margin-top:16px;">
             <button class="btn btn-ghost btn-sm" id="notePrev">‹ 上一页</button>
@@ -651,41 +651,17 @@ function renderNoteList(){
   $('noteListCount').textContent=total+' 条';
   if(!total){ $('noteListAll').innerHTML='<div class="empty">📒 还没有任何便签</div>'; $('notePager').style.display='none'; return; }
   $('noteListAll').innerHTML=list.map(n=>`
-    <div class="cust-item" style="align-items:stretch; ${n.done?'opacity:.55;':''}">
+    <div class="cust-item" style="align-items:center; ${n.done?'opacity:.55;':''}">
       <div class="info" style="flex:1;">
-        <textarea class="note-edit-all" data-id="${n.id}" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical; ${n.done?'text-decoration:line-through;':''}">${escapeHtml(n.content)}</textarea>
+        <div class="name" style="font-weight:500;${n.done?'text-decoration:line-through;color:var(--text3);':''}">${escapeHtml(n.content)}</div>
         <div class="meta" style="margin-top:4px;">创建于 ${n.created_at||'—'} · ${n.done?'<span class="tag tag-fail">已完成</span>':'<span class="tag tag-following">待办</span>'}</div>
       </div>
-      <div class="ops" style="flex-direction:column;justify-content:center;gap:6px;">
-        <button class="btn btn-primary btn-sm" data-update-all="${n.id}">更新</button>
-        <button class="btn ${n.done?'btn-ghost':'btn-success'} btn-sm" data-toggle-all="${n.id}">${n.done?'恢复':'完成'}</button>
-      </div>
     </div>`).join('');
-  $('noteListAll').querySelectorAll('[data-update-all]').forEach(b=>{
-    b.addEventListener('click', ()=>updateNoteList(b.dataset.updateAll));
-  });
-  $('noteListAll').querySelectorAll('[data-toggle-all]').forEach(b=>{
-    b.addEventListener('click', ()=>toggleNoteDone(b.dataset.toggleAll));
-  });
   $('notePageInfo').textContent='第 '+notePage+' / '+pages+' 页（共 '+total+' 条）';
   $('notePager').style.display= pages>1?'flex':'none';
   $('notePrev').disabled = notePage<=1;
   $('noteNext').disabled = notePage>=pages;
 }
-window.updateNoteList=async id=>{
-  const ta=document.querySelector('.note-edit-all[data-id="'+id+'"]'); if(!ta)return;
-  const content=ta.value.trim();
-  if(!content){ return toast('便签内容不能为空'); }
-  const {error}=await supabase.from('notes').update({ content, updated_at:todayStr() }).eq('id',id);
-  if(error)return toast('更新失败：'+error.message);
-  await loadNotes(); renderNoteList(); renderNotes(); renderBadges(); toast('已更新');
-};
-window.toggleNoteDone=async id=>{
-  const n=notes.find(x=>String(x.id)===String(id)); if(!n)return;
-  const {error}=await supabase.from('notes').update({ done:!n.done, updated_at:todayStr() }).eq('id',id);
-  if(error)return toast('操作失败：'+error.message);
-  await loadNotes(); renderNoteList(); renderNotes(); renderBadges(); toast(n.done?'已恢复为待办':'已标记完成');
-};
 function renderTable(){
   const kw=$('searchInput').value.trim().toLowerCase();
   const f=$('statusFilter').querySelector('.active').dataset.f;
@@ -870,8 +846,8 @@ function switchPage(p){
 }
 /* 子菜单点击 */
 document.querySelectorAll('.sidebar .nav-item').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
-/* 客户管理点击 */
-document.querySelector('.nav-single[data-page="customers"]').onclick=()=>switchPage('customers');
+/* 独立菜单（便签列表/客户管理）点击 */
+document.querySelectorAll('.sidebar .nav-single').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
 /* 父菜单：展开/收起 + 跳到第一个子项 */
 $('wbParent').onclick=()=>{
   const subs=$('wbSubs'); const collapsed=$('wbParent').classList.toggle('collapsed');

@@ -142,18 +142,23 @@ tr:hover td{background:#f8fafc;}
 .sel-head{font-size:13.5px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .sel-head .sel-count{background:var(--primary);color:#fff;font-size:11.5px;border-radius:9px;padding:1px 8px;font-weight:600;}
 .sel-head .sel-tip{font-weight:400;color:var(--text3);font-size:12px;}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
-.chip{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);color:var(--text);font-size:13px;padding:5px 8px 5px 13px;border-radius:99px;transition:.15s;}
-.chip:hover{border-color:var(--primary);}
-.chip .cname{font-weight:500;}
-.chip .role{background:var(--primary-bg);color:var(--primary-dark);font-size:11px;padding:1px 8px;border-radius:99px;font-weight:600;white-space:nowrap;}
-.chip .x{border:none;background:none;color:var(--text3);font-size:15px;cursor:pointer;line-height:1;padding:0 3px;}
-.chip .x:hover{color:var(--danger);}
-.chip.main{background:var(--primary);border-color:var(--primary);color:#fff;}
-.chip.main .cname{font-weight:600;}
-.chip.main .role{background:#fff;color:var(--primary);}
-.chip.main .x{color:rgba(255,255,255,.85);}
-.chip.main .x:hover{color:#fff;}
+.pick-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.pick-card{display:flex;align-items:center;gap:11px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;transition:.15s;}
+.pick-card:hover{border-color:var(--primary);}
+.pick-card .pc-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-bg);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.pick-card .pc-info{flex:1;min-width:0;}
+.pick-card .pc-name{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px;}
+.pick-card .pc-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+.pick-card .pc-role{background:var(--primary-bg);color:var(--primary-dark);font-size:11px;padding:1px 8px;border-radius:99px;font-weight:600;white-space:nowrap;}
+.pick-card .pc-remove{border:none;background:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;flex-shrink:0;}
+.pick-card .pc-remove:hover{color:var(--danger);background:var(--danger-bg);}
+.pick-card.main{background:linear-gradient(135deg,#2563eb,#1e40af);border-color:transparent;box-shadow:0 2px 6px rgba(37,99,235,.25);}
+.pick-card.main .pc-avatar{background:rgba(255,255,255,.22);color:#fff;}
+.pick-card.main .pc-name{color:#fff;}
+.pick-card.main .pc-meta{color:rgba(255,255,255,.85);}
+.pick-card.main .pc-role{background:#fff;color:var(--primary);}
+.pick-card.main .pc-remove{color:rgba(255,255,255,.85);}
+.pick-card.main .pc-remove:hover{color:#fff;background:rgba(255,255,255,.15);}
 
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
 #toast.show{opacity:1;}
@@ -956,18 +961,22 @@ window.saveEditCustomer=async id=>{
 /* ============ 新建订单（多客户：搜索直连输入框下方 / 新增客户） ============ */
 function renderNoSelected(){
   if(!newOrderCusts.length){ $('noSelected').innerHTML=''; return; }
-  const chipsHtml=newOrderCusts.map((cid,i)=>{
+  const cardsHtml=newOrderCusts.map((cid,i)=>{
     const c=findCust(cid); if(!c) return '';
     const isMain = i===0;
-    return `<span class="chip${isMain?' main':''}">
-      <span class="cname">${escapeHtml(c.name)}</span>
-      ${isMain?'<span class="role">下单人</span>':''}
-      <button class="x" data-rm="${c.id}" title="移除">×</button>
-    </span>`;
+    const meta=[maskId(c.id_card), c.phone||'无电话'].join(' · ');
+    return `<div class="pick-card${isMain?' main':''}">
+      <span class="pc-avatar">${isMain?'⭐':'👤'}</span>
+      <div class="pc-info">
+        <div class="pc-name">${escapeHtml(c.name)}${isMain?'<span class="pc-role">下单人</span>':''}</div>
+        <div class="pc-meta">${meta}</div>
+      </div>
+      <button class="pc-remove" data-rm="${c.id}" title="移除">×</button>
+    </div>`;
   }).join('');
   $('noSelected').innerHTML=`
     <div class="sel-head">已选客户 <span class="sel-count">${newOrderCusts.length}</span><span class="sel-tip">第一位为下单人，点 × 移除，移除后顺序自动前移</span></div>
-    <div class="chips">${chipsHtml}</div>`;
+    <div class="pick-cards">${cardsHtml}</div>`;
   $('noSelected').querySelectorAll('[data-rm]').forEach(b=>{
     b.addEventListener('click', ()=>removeCustFromOrder(b.dataset.rm));
   });

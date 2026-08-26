@@ -139,6 +139,12 @@ tr:hover td{background:#f8fafc;}
 
 .pick-divider{font-size:12.5px;color:var(--text3);margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
 .pick-divider::before,.pick-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--primary-bg);border:1px solid var(--primary);color:var(--primary-dark);font-size:13px;padding:4px 8px 4px 12px;border-radius:99px;}
+.chip .x{border:none;background:none;color:var(--primary);font-size:14px;cursor:pointer;line-height:1;padding:0 2px;}
+.chip .x:hover{color:var(--danger);}
+.chip.main{background:var(--primary);color:#fff;border-color:var(--primary);}
+.chip.main .x{color:#fff;}
 
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
 #toast.show{opacity:1;}
@@ -349,12 +355,12 @@ tr:hover td{background:#f8fafc;}
     <div class="modal-head"><h3>新建订单</h3><button class="modal-close" onclick="closeModal('newOrderModal')">×</button></div>
     <div class="modal-body">
       <div class="form-item">
-        <label>客户姓名（模糊搜索已有客户）</label>
-        <input type="text" id="noSearch" placeholder="输入姓名开始搜索…" maxlength="30">
-        <div id="noSearchTip" class="tip">输入姓名后，下方会列出匹配的已有客户，点击即可选中</div>
+        <label>客户姓名（模糊搜索，可添加多位客户，第一位为下单人）</label>
+        <input type="text" id="noSearch" placeholder="输入姓名，下方直接点选加入…" maxlength="30">
       </div>
       <div id="noResults"></div>
-      <div class="pick-divider">没有找到？填写下方信息新增客户并下单</div>
+      <div id="noSelected"></div>
+      <div class="pick-divider">没有找到？填写下方信息新增客户</div>
       <div id="noNewForm">
         <div class="form-item">
           <label>客户姓名 *</label>
@@ -372,6 +378,9 @@ tr:hover td{background:#f8fafc;}
         <div class="form-item">
           <label>地址（选填）</label>
           <input type="text" id="noAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
+        </div>
+        <div class="modal-foot" style="justify-content:flex-start;padding-top:0;">
+          <button class="btn btn-ghost btn-sm" onclick="addNewCustToOrder()">＋ 新增客户并加入订单</button>
         </div>
       </div>
       <div class="form-item">
@@ -420,7 +429,7 @@ tr:hover td{background:#f8fafc;}
     <div class="modal-body">
       <div id="cdInfo"></div>
       <div style="display:flex;gap:8px;margin:14px 0 16px;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-sm" onclick="openNewOrderModalForCust()">＋ 为此客户下单</button>
+        <button class="btn btn-primary btn-sm" id="cdOrderBtn">＋ 为此客户下单</button>
         <button class="btn btn-ghost btn-sm" id="cdEditBtn">修改信息</button>
       </div>
       <div>
@@ -530,12 +539,15 @@ function statusTag(st, auto){
 }
 
 /* ============ Supabase 实例 ============ */
-let supabase, customers=[], orders=[], notes=[], currentOrderId=null, currentCustId=null;
+let supabase, customers=[], orders=[], notes=[], orderCusts=[], currentOrderId=null, currentCustId=null;
+let newOrderCusts=[];
 
-function custOf(o){ return customers.find(c=>String(c.id)===String(o.customer_id)); }
-function ordersOf(c){ return orders.filter(o=>String(o.customer_id)===String(c.id)); }
 function findOrder(id){ return orders.find(o=>String(o.id)===String(id)); }
 function findCust(id){ return customers.find(c=>String(c.id)===String(id)); }
+function custOf(o){ return customers.find(c=>String(c.id)===String(o.customer_id)); }
+function orderCustIds(o){ return orderCusts.filter(x=>String(x.order_id)===String(o.id)).map(x=>String(x.customer_id)); }
+function custNamesOf(o){ return orderCustIds(o).map(cid=>{ const c=findCust(cid); return c?c.name:null; }).filter(Boolean).join('、') || '—'; }
+function ordersOf(c){ const cid=String(c.id); return orders.filter(o=>orderCustIds(o).includes(cid)); }
 
 /* ============ 自动判失败：客户端执行（作用于订单） ============ */
 function autoFail(){
@@ -556,14 +568,17 @@ function autoFail(){
 
 /* ============ 数据读写 ============ */
 async function loadData(){
-  const [cRes, oRes] = await Promise.all([
+  const [cRes, oRes, ocRes] = await Promise.all([
     supabase.from('customers').select('*').order('created_at',{ascending:true}),
     supabase.from('orders').select('*').order('created_at',{ascending:true}),
+    supabase.from('order_customers').select('*'),
   ]);
   if(cRes.error){ toast('客户读取失败：'+cRes.error.message); return; }
   if(oRes.error){ toast('订单读取失败：'+oRes.error.message); return; }
+  if(ocRes.error){ toast('订单客户关系读取失败：'+ocRes.error.message); return; }
   customers = cRes.data.map(r=>({...r}));
   orders = oRes.data.map(r=>({...r, follow_ups: typeof r.follow_ups==='string'?JSON.parse(r.follow_ups):(r.follow_ups||[])}));
+  orderCusts = ocRes.data.map(r=>({...r}));
   autoFail();
   await loadNotes();
   render();
@@ -738,7 +753,7 @@ function renderOrders(){
     if(f!=='all'&&o.status!==f)return false;
     if(kw){
       const c=custOf(o);
-      const hit = c && (c.name.toLowerCase().includes(kw)||(c.id_card&&c.id_card.toLowerCase().includes(kw)));
+      const hit = custNamesOf(o).toLowerCase().includes(kw) || (c&&c.id_card&&c.id_card.toLowerCase().includes(kw));
       if(!hit) return false;
     }
     return true;
@@ -746,9 +761,9 @@ function renderOrders(){
   $('orderEmpty').style.display=list.length?'none':'';
   $('orderTable').innerHTML=list.map(o=>{
     const c=custOf(o); if(!c) return '';
-    const d=remaining(o), st=o.status;
+    const d=remaining(o), st=o.status, nc=orderCustIds(o).length;
     return `<tr>
-      <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
+      <td><b>${c.name}</b>${nc>1?` <span style="color:var(--text3);font-size:12px;">等${nc}人</span>`:''}</td><td>${maskId(c.id_card)}</td>
       <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
       <td>${statusTag(st,o.auto_failed)}</td>
       <td>${st==='成功'?(o.travel_date||'—')+' · '+(o.travel_location||'—')+' · '+(o.insurance_bought?'<span class="tag tag-success">已购</span>':'<span class="tag tag-insurance">待购</span>'):'—'}</td>
@@ -932,12 +947,31 @@ window.saveEditCustomer=async id=>{
   await saveCustomer(c); toast('已保存修改');
 };
 
-/* ============ 新建订单（搜索客户 / 新增客户） ============ */
-let newOrderCustId=null;
-window.openNewOrderModal=()=>{
-  newOrderCustId=null;
+/* ============ 新建订单（多客户：搜索直连输入框下方 / 新增客户） ============ */
+function renderNoSelected(){
+  if(!newOrderCusts.length){ $('noSelected').innerHTML=''; return; }
+  $('noSelected').innerHTML='<div class="chips">'+newOrderCusts.map((cid,i)=>{
+    const c=findCust(cid); if(!c) return '';
+    const isMain = i===0;
+    return `<span class="chip${isMain?' main':''}" title="${isMain?'下单人':''}">${escapeHtml(c.name)}${isMain?'(下单人)':''}<button class="x" data-rm="${c.id}">×</button></span>`;
+  }).join('')+'</div>';
+  $('noSelected').querySelectorAll('[data-rm]').forEach(b=>{
+    b.addEventListener('click', ()=>removeCustFromOrder(b.dataset.rm));
+  });
+}
+function addCustToOrder(id){
+  if(newOrderCusts.some(x=>String(x)===String(id))){ toast('该客户已在订单中'); return; }
+  newOrderCusts.push(id);
+  renderNoSelected();
   $('noSearch').value=''; $('noResults').innerHTML='';
-  $('noSearchTip').textContent='输入姓名后，下方会列出匹配的已有客户，点击即可选中';
+}
+function removeCustFromOrder(id){
+  newOrderCusts=newOrderCusts.filter(x=>String(x)!==String(id));
+  renderNoSelected();
+}
+window.openNewOrderModal=()=>{
+  newOrderCusts=[];
+  $('noSearch').value=''; $('noResults').innerHTML=''; renderNoSelected();
   $('noName').value=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value=''; $('noNote').value='';
   $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
   $('noConfirmBtn').textContent='创建订单';
@@ -945,30 +979,14 @@ window.openNewOrderModal=()=>{
 };
 window.openNewOrderModalForCust=(id=null)=>{
   openNewOrderModal();
-  if(id){
-    const c=findCust(id);
-    if(c){
-      newOrderCustId=c.id;
-      $('noSearch').value=c.name;
-      $('noSearchTip').textContent='已选中已有客户：'+c.name+'（'+maskId(c.id_card)+'）';
-      $('noResults').innerHTML='';
-      $('noConfirmBtn').textContent='为该客户创建订单';
-    }
-  }
+  if(id){ addCustToOrder(id); }
 };
 $('noSearch').oninput=()=>{
-  newOrderCustId=null;
   const kw=$('noSearch').value.trim();
-  $('noConfirmBtn').textContent='创建订单';
-  if(!kw){
-    $('noResults').innerHTML='';
-    $('noSearchTip').textContent='输入姓名后，下方会列出匹配的已有客户，点击即可选中';
-    return;
-  }
-  const hits=customers.filter(c=>c.name.toLowerCase().includes(kw.toLowerCase()));
+  if(!kw){ $('noResults').innerHTML=''; return; }
+  const hits=customers.filter(c=>c.name.toLowerCase().includes(kw.toLowerCase()) && !newOrderCusts.some(x=>String(x)===String(c.id)));
   if(!hits.length){
     $('noResults').innerHTML='<div class="empty" style="padding:14px 0;">未找到「'+escapeHtml(kw)+'」对应的客户，可填写下方信息新增</div>';
-    $('noSearchTip').textContent='';
     return;
   }
   $('noResults').innerHTML=hits.map(c=>`
@@ -977,41 +995,39 @@ $('noSearch').oninput=()=>{
       <div class="meta"><span>${maskId(c.id_card)}</span><span>${c.phone||'无电话'}</span><span>名下 ${ordersOf(c).length} 单</span></div></div>
     </div>`).join('');
   $('noResults').querySelectorAll('[data-pick]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const c=findCust(el.dataset.pick); if(!c)return;
-      newOrderCustId=c.id;
-      $('noSearch').value=c.name;
-      $('noSearchTip').textContent='已选中：'+c.name+'（'+maskId(c.id_card)+'）';
-      $('noResults').innerHTML='';
-      $('noConfirmBtn').textContent='为该客户创建订单';
-    });
+    el.addEventListener('click', ()=>{ addCustToOrder(el.dataset.pick); });
   });
-  $('noSearchTip').textContent='点击列表中的客户可选中，或填写下方信息新增';
+};
+window.addNewCustToOrder=async()=>{
+  const name=$('noName').value.trim(), idcard=$('noIdcard').value.trim();
+  const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();
+  if(!name){ return toast('请填写客户姓名'); }
+  let birth=null, gender=null;
+  if(idcard){
+    const v=validateIdCard(idcard);
+    if(!v.ok){ $('noIdcardTip').textContent='⚠ '+v.msg; $('noIdcardTip').style.color='var(--danger)'; return; }
+    birth=v.birth; gender=v.gender;
+  }
+  const {data,error}=await supabase.from('customers').insert({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:todayStr() });
+  if(error)return toast('客户创建失败：'+error.message);
+  const cid=data[0].id;
+  $('noName').value=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value='';
+  $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
+  addCustToOrder(cid);
+  toast('客户已创建并加入订单');
 };
 window.createOrder=async()=>{
+  if(!newOrderCusts.length){ return toast('请先添加至少一位客户'); }
   const note=$('noNote').value.trim();
   const today=todayStr();
-  let cid=newOrderCustId;
-  if(cid){
-    const c=findCust(cid);
-    if(!c){ toast('客户不存在，请重新选择'); return; }
-  }else{
-    const name=$('noName').value.trim(), idcard=$('noIdcard').value.trim();
-    const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();
-    if(!name){ return toast('请填写客户姓名'); }
-    let birth=null, gender=null;
-    if(idcard){
-      const v=validateIdCard(idcard);
-      if(!v.ok){ $('noIdcardTip').textContent='⚠ '+v.msg; $('noIdcardTip').style.color='var(--danger)'; return; }
-      birth=v.birth; gender=v.gender;
-    }
-    const {data,error}=await supabase.from('customers').insert({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:today });
-    if(error)return toast('客户创建失败：'+error.message);
-    cid=data[0].id;
-  }
-  const row={ customer_id:cid, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] };
-  const {error}=await supabase.from('orders').insert(row);
+  const mainId=newOrderCusts[0];
+  const row={ customer_id:mainId, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] };
+  const {data,error}=await supabase.from('orders').insert(row);
   if(error)return toast('订单创建失败：'+error.message);
+  const orderId=data[0].id;
+  const links=newOrderCusts.map(cid=>({ order_id:orderId, customer_id:cid }));
+  const {error:lErr}=await supabase.from('order_customers').insert(links);
+  if(lErr)return toast('订单客户关联失败：'+lErr.message);
   closeModal('newOrderModal'); await loadData(); toast('订单已创建，开始跟进');
 };
 
@@ -1022,7 +1038,8 @@ window.openDetail=id=>{
   const c=custOf(o); if(!c){ toast('未找到关联客户'); return; }
   $('dTitle').textContent=c.name+' 的订单';
   $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
-    <div>客户：<b>${c.name}</b> · 证件：${maskId(c.id_card)}</div>
+    <div>客户：<b>${custNamesOf(o)}</b></div>
+    <div>下单人：${c.name} · 证件：${maskId(c.id_card)}</div>
     <div>出生：${c.birth||'—'} · ${c.gender||'—'} · ${c.birth?ageFromBirth(c.birth)+'岁':'—'}</div>
     <div>电话：${c.phone||'—'} · 地址：${c.address||'—'}</div>
     <div>状态：${statusTag(o.status,o.auto_failed)}</div>
@@ -1123,6 +1140,7 @@ window.openCustDetail=id=>{
   $('cdOrders').querySelectorAll('[data-cd-open]').forEach(b=>{
     b.addEventListener('click', ()=>{ closeModal('custDetailModal'); openDetail(b.dataset.cdOpen); });
   });
+  $('cdOrderBtn').onclick=()=>{ closeModal('custDetailModal'); openNewOrderModalForCust(c.id); };
   $('cdEditBtn').onclick=()=>{ closeModal('custDetailModal'); openEditModal(c.id); };
   $('cdDeleteBtn').onclick=()=>deleteCustomer(c.id);
   showModal('custDetailModal');
@@ -1130,10 +1148,10 @@ window.openCustDetail=id=>{
 
 /* ============ 导出 ============ */
 window.exportOrderCSV=()=>{
-  const head=['客户姓名','身份证号','电话','地址','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
+  const head=['客户(全部)','下单人','身份证号','电话','地址','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
   const rows=orders.map(o=>{
     const c=custOf(o)||{};
-    return [c.name||'',c.id_card||'',c.phone||'',c.address||'',o.status,o.fail_reason||'',o.travel_date||'',o.travel_location||'',o.insurance_bought?'是':'否',o.created_at,o.last_follow_at||''];
+    return [custNamesOf(o),c.name||'',c.id_card||'',c.phone||'',c.address||'',o.status,o.fail_reason||'',o.travel_date||'',o.travel_location||'',o.insurance_bought?'是':'否',o.created_at,o.last_follow_at||''];
   });
   const csv=[head,...rows].map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv'}); const a=document.createElement('a');

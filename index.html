@@ -161,6 +161,17 @@ tr:hover td{background:#f8fafc;}
 .pick-card.main .pc-remove{color:rgba(255,255,255,.85);}
 .pick-card.main .pc-remove:hover{color:#fff;background:rgba(255,255,255,.15);}
 
+/* ============ 新建订单 · 新增客户高亮区 ============ */
+.add-new-cust{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px dashed var(--primary);border-radius:11px;padding:14px 16px;margin-top:12px;position:relative;}
+.add-new-cust::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;background:linear-gradient(180deg,#2563eb,#1e40af);border-radius:0 4px 4px 0;}
+.add-new-cust .anc-head{font-size:13.5px;font-weight:600;color:var(--primary-dark);margin:0 0 10px 8px;display:flex;align-items:center;gap:6px;}
+.add-new-cust .anc-head .anc-name{background:#fff;color:var(--primary);padding:2px 12px;border-radius:99px;border:1px solid #93c5fd;font-weight:700;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.btn-add-new{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;transition:.18s;font-family:inherit;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 10px rgba(37,99,235,.35);letter-spacing:.3px;width:100%;justify-content:center;}
+.btn-add-new:hover{box-shadow:0 6px 16px rgba(37,99,235,.5);transform:translateY(-1px);}
+.btn-add-new:active{transform:translateY(0);box-shadow:0 2px 6px rgba(37,99,235,.4);}
+.btn-add-new .ba-icon{font-size:17px;}
+
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
 #toast.show{opacity:1;}
 #connBar{text-align:center;font-size:13px;padding:8px;color:var(--text2);}
@@ -376,22 +387,25 @@ tr:hover td{background:#f8fafc;}
       <div id="noResults"></div>
       <div id="noSelected"></div>
       <div class="pick-divider">未找到该客户？补充信息后新增</div>
-      <div id="noNewForm">
-        <div class="form-item">
-          <label>身份证号（选填）</label>
-          <input type="text" id="noIdcard" placeholder="18位身份证号码" maxlength="18">
-          <div class="tip" id="noIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
-        </div>
-        <div class="form-item">
-          <label>电话号码（选填）</label>
-          <input type="text" id="noPhone" placeholder="如：13800138000" maxlength="20">
-        </div>
-        <div class="form-item">
-          <label>地址（选填）</label>
-          <input type="text" id="noAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
-        </div>
-        <div class="modal-foot" style="justify-content:flex-start;padding-top:0;">
-          <button class="btn btn-ghost btn-sm" onclick="addNewCustToOrder()">＋ 用上方姓名新增客户并加入订单</button>
+      <div class="add-new-cust">
+        <div class="anc-head" id="ancHead">➕ 补充信息后新增客户并加入订单</div>
+        <div id="noNewForm">
+          <div class="form-item">
+            <label>身份证号（选填）</label>
+            <input type="text" id="noIdcard" placeholder="18位身份证号码" maxlength="18">
+            <div class="tip" id="noIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
+          </div>
+          <div class="form-item">
+            <label>电话号码（选填）</label>
+            <input type="text" id="noPhone" placeholder="如：13800138000" maxlength="20">
+          </div>
+          <div class="form-item">
+            <label>地址（选填）</label>
+            <input type="text" id="noAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
+          </div>
+          <div class="modal-foot" style="justify-content:stretch;padding-top:6px;">
+            <button class="btn-add-new" onclick="addNewCustToOrder()"><span class="ba-icon">＋</span><span id="baTxt">用上方姓名新增客户并加入订单</span></button>
+          </div>
         </div>
       </div>
       <div class="form-item">
@@ -1002,14 +1016,25 @@ window.openNewOrderModal=()=>{
   $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value=''; $('noNote').value='';
   $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
   $('noConfirmBtn').textContent='创建订单';
+  updateAncBar('');
   showModal('newOrderModal');
 };
+function updateAncBar(name){
+  if(name){
+    $('ancHead').innerHTML='➕ 为 <span class="anc-name" title="'+escapeHtml(name)+'">'+escapeHtml(name)+'</span> 创建新客户并加入此订单';
+    $('baTxt').textContent='用上方姓名「'+name+'」创建客户并加入订单';
+  }else{
+    $('ancHead').textContent='➕ 补充信息后新增客户并加入订单';
+    $('baTxt').textContent='用上方姓名新增客户并加入订单';
+  }
+}
 window.openNewOrderModalForCust=(id=null)=>{
   openNewOrderModal();
   if(id){ addCustToOrder(id); }
 };
 $('noSearch').oninput=()=>{
   const kw=$('noSearch').value.trim();
+  updateAncBar(kw);
   if(!kw){ $('noResults').innerHTML=''; return; }
   const kwL=kw.toLowerCase();
   const hits=customers
@@ -1049,6 +1074,7 @@ window.addNewCustToOrder=async()=>{
   customers.push(newC);
   const cid=newC.id;
   $('noSearch').value=''; $('noResults').innerHTML=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value='';
+  updateAncBar('');
   $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
   addCustToOrder(cid);
   toast('客户已创建并加入订单');

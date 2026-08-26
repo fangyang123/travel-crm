@@ -621,6 +621,7 @@ async function saveOrder(rec){
 }
 async function deleteOrder(id){
   if(!confirm('确定删除该订单？此操作不可恢复。')) return;
+  await supabase.from('order_customers').delete().eq('order_id',id);
   const {error}=await supabase.from('orders').delete().eq('id',id);
   if(error)return toast('删除失败：'+error.message);
   closeModal('detailModal'); await loadData(); toast('订单已删除');
@@ -984,7 +985,10 @@ window.openNewOrderModalForCust=(id=null)=>{
 $('noSearch').oninput=()=>{
   const kw=$('noSearch').value.trim();
   if(!kw){ $('noResults').innerHTML=''; return; }
-  const hits=customers.filter(c=>c.name.toLowerCase().includes(kw.toLowerCase()) && !newOrderCusts.some(x=>String(x)===String(c.id)));
+  const kwL=kw.toLowerCase();
+  const hits=customers
+    .filter(c=>c.name.toLowerCase().includes(kwL) && !newOrderCusts.some(x=>String(x)===String(c.id)))
+    .sort((a,b)=>{ const ap=a.name.toLowerCase().startsWith(kwL)?0:1; const bp=b.name.toLowerCase().startsWith(kwL)?0:1; return ap-bp; });
   if(!hits.length){
     $('noResults').innerHTML='<div class="empty" style="padding:14px 0;">未找到「'+escapeHtml(kw)+'」对应的客户，可填写下方信息新增</div>';
     return;
@@ -998,6 +1002,12 @@ $('noSearch').oninput=()=>{
     el.addEventListener('click', ()=>{ addCustToOrder(el.dataset.pick); });
   });
 };
+$('noSearch').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    const first=$('noResults').querySelector('[data-pick]');
+    if(first){ e.preventDefault(); addCustToOrder(first.dataset.pick); }
+  }
+});
 window.addNewCustToOrder=async()=>{
   const name=$('noName').value.trim(), idcard=$('noIdcard').value.trim();
   const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();

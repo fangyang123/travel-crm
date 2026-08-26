@@ -139,12 +139,21 @@ tr:hover td{background:#f8fafc;}
 
 .pick-divider{font-size:12.5px;color:var(--text3);margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
 .pick-divider::before,.pick-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.sel-head{font-size:13.5px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sel-head .sel-count{background:var(--primary);color:#fff;font-size:11.5px;border-radius:9px;padding:1px 8px;font-weight:600;}
+.sel-head .sel-tip{font-weight:400;color:var(--text3);font-size:12px;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
-.chip{display:inline-flex;align-items:center;gap:6px;background:var(--primary-bg);border:1px solid var(--primary);color:var(--primary-dark);font-size:13px;padding:4px 8px 4px 12px;border-radius:99px;}
-.chip .x{border:none;background:none;color:var(--primary);font-size:14px;cursor:pointer;line-height:1;padding:0 2px;}
+.chip{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);color:var(--text);font-size:13px;padding:5px 8px 5px 13px;border-radius:99px;transition:.15s;}
+.chip:hover{border-color:var(--primary);}
+.chip .cname{font-weight:500;}
+.chip .role{background:var(--primary-bg);color:var(--primary-dark);font-size:11px;padding:1px 8px;border-radius:99px;font-weight:600;white-space:nowrap;}
+.chip .x{border:none;background:none;color:var(--text3);font-size:15px;cursor:pointer;line-height:1;padding:0 3px;}
 .chip .x:hover{color:var(--danger);}
-.chip.main{background:var(--primary);color:#fff;border-color:var(--primary);}
-.chip.main .x{color:#fff;}
+.chip.main{background:var(--primary);border-color:var(--primary);color:#fff;}
+.chip.main .cname{font-weight:600;}
+.chip.main .role{background:#fff;color:var(--primary);}
+.chip.main .x{color:rgba(255,255,255,.85);}
+.chip.main .x:hover{color:#fff;}
 
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
 #toast.show{opacity:1;}
@@ -355,7 +364,7 @@ tr:hover td{background:#f8fafc;}
     <div class="modal-head"><h3>新建订单</h3><button class="modal-close" onclick="closeModal('newOrderModal')">×</button></div>
     <div class="modal-body">
       <div class="form-item">
-        <label>客户姓名（输入姓名模糊搜索，点选加入；搜不到则补信息新增）</label>
+        <label>客户姓名 <span style="font-weight:400;color:var(--text3);font-size:12.5px;">输入即搜索，点选加入，可多位</span></label>
         <input type="text" id="noSearch" placeholder="输入姓名，下方直接点选加入…" maxlength="30">
       </div>
       <div id="noResults"></div>
@@ -947,11 +956,18 @@ window.saveEditCustomer=async id=>{
 /* ============ 新建订单（多客户：搜索直连输入框下方 / 新增客户） ============ */
 function renderNoSelected(){
   if(!newOrderCusts.length){ $('noSelected').innerHTML=''; return; }
-  $('noSelected').innerHTML='<div class="chips">'+newOrderCusts.map((cid,i)=>{
+  const chipsHtml=newOrderCusts.map((cid,i)=>{
     const c=findCust(cid); if(!c) return '';
     const isMain = i===0;
-    return `<span class="chip${isMain?' main':''}" title="${isMain?'下单人':''}">${escapeHtml(c.name)}${isMain?'(下单人)':''}<button class="x" data-rm="${c.id}">×</button></span>`;
-  }).join('')+'</div>';
+    return `<span class="chip${isMain?' main':''}">
+      <span class="cname">${escapeHtml(c.name)}</span>
+      ${isMain?'<span class="role">下单人</span>':''}
+      <button class="x" data-rm="${c.id}" title="移除">×</button>
+    </span>`;
+  }).join('');
+  $('noSelected').innerHTML=`
+    <div class="sel-head">已选客户 <span class="sel-count">${newOrderCusts.length}</span><span class="sel-tip">第一位为下单人，点 × 移除，移除后顺序自动前移</span></div>
+    <div class="chips">${chipsHtml}</div>`;
   $('noSelected').querySelectorAll('[data-rm]').forEach(b=>{
     b.addEventListener('click', ()=>removeCustFromOrder(b.dataset.rm));
   });
@@ -990,9 +1006,10 @@ $('noSearch').oninput=()=>{
     return;
   }
   $('noResults').innerHTML=hits.map(c=>`
-    <div class="cust-item" data-pick="${c.id}">
+    <div class="cust-item" data-pick="${c.id}" style="margin-bottom:8px;">
       <div class="info"><div class="name">${c.name}</div>
       <div class="meta"><span>${maskId(c.id_card)}</span><span>${c.phone||'无电话'}</span><span>名下 ${ordersOf(c).length} 单</span></div></div>
+      <div class="ops"><span class="btn btn-primary btn-sm">＋ 加入</span></div>
     </div>`).join('');
   $('noResults').querySelectorAll('[data-pick]').forEach(el=>{
     el.addEventListener('click', ()=>{ addCustToOrder(el.dataset.pick); });

@@ -355,17 +355,13 @@ tr:hover td{background:#f8fafc;}
     <div class="modal-head"><h3>新建订单</h3><button class="modal-close" onclick="closeModal('newOrderModal')">×</button></div>
     <div class="modal-body">
       <div class="form-item">
-        <label>客户姓名（模糊搜索，可添加多位客户，第一位为下单人）</label>
+        <label>客户姓名（输入姓名模糊搜索，点选加入；搜不到则补信息新增）</label>
         <input type="text" id="noSearch" placeholder="输入姓名，下方直接点选加入…" maxlength="30">
       </div>
       <div id="noResults"></div>
       <div id="noSelected"></div>
-      <div class="pick-divider">没有找到？填写下方信息新增客户</div>
+      <div class="pick-divider">未找到该客户？补充信息后新增</div>
       <div id="noNewForm">
-        <div class="form-item">
-          <label>客户姓名 *</label>
-          <input type="text" id="noName" placeholder="请输入姓名" maxlength="30">
-        </div>
         <div class="form-item">
           <label>身份证号（选填）</label>
           <input type="text" id="noIdcard" placeholder="18位身份证号码" maxlength="18">
@@ -380,7 +376,7 @@ tr:hover td{background:#f8fafc;}
           <input type="text" id="noAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
         </div>
         <div class="modal-foot" style="justify-content:flex-start;padding-top:0;">
-          <button class="btn btn-ghost btn-sm" onclick="addNewCustToOrder()">＋ 新增客户并加入订单</button>
+          <button class="btn btn-ghost btn-sm" onclick="addNewCustToOrder()">＋ 用上方姓名新增客户并加入订单</button>
         </div>
       </div>
       <div class="form-item">
@@ -973,7 +969,7 @@ function removeCustFromOrder(id){
 window.openNewOrderModal=()=>{
   newOrderCusts=[];
   $('noSearch').value=''; $('noResults').innerHTML=''; renderNoSelected();
-  $('noName').value=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value=''; $('noNote').value='';
+  $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value=''; $('noNote').value='';
   $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
   $('noConfirmBtn').textContent='创建订单';
   showModal('newOrderModal');
@@ -1009,19 +1005,19 @@ $('noSearch').addEventListener('keydown', e=>{
   }
 });
 window.addNewCustToOrder=async()=>{
-  const name=$('noName').value.trim(), idcard=$('noIdcard').value.trim();
+  const name=$('noSearch').value.trim(), idcard=$('noIdcard').value.trim();
   const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();
-  if(!name){ return toast('请填写客户姓名'); }
+  if(!name){ return toast('请在姓名输入框填写客户姓名'); }
   let birth=null, gender=null;
   if(idcard){
     const v=validateIdCard(idcard);
     if(!v.ok){ $('noIdcardTip').textContent='⚠ '+v.msg; $('noIdcardTip').style.color='var(--danger)'; return; }
     birth=v.birth; gender=v.gender;
   }
-  const {data,error}=await supabase.from('customers').insert({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:todayStr() });
+  const {data,error}=await supabase.from('customers').insert({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:todayStr() }).select();
   if(error)return toast('客户创建失败：'+error.message);
   const cid=data[0].id;
-  $('noName').value=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value='';
+  $('noSearch').value=''; $('noResults').innerHTML=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value='';
   $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
   addCustToOrder(cid);
   toast('客户已创建并加入订单');
@@ -1032,7 +1028,7 @@ window.createOrder=async()=>{
   const today=todayStr();
   const mainId=newOrderCusts[0];
   const row={ customer_id:mainId, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] };
-  const {data,error}=await supabase.from('orders').insert(row);
+  const {data,error}=await supabase.from('orders').insert(row).select();
   if(error)return toast('订单创建失败：'+error.message);
   const orderId=data[0].id;
   const links=newOrderCusts.map(cid=>({ order_id:orderId, customer_id:cid }));

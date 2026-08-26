@@ -1044,7 +1044,9 @@ window.addNewCustToOrder=async()=>{
   }
   const {data,error}=await supabase.from('customers').insert({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:todayStr() }).select();
   if(error)return toast('客户创建失败：'+error.message);
-  const cid=data[0].id;
+  const newC=data[0];
+  customers.push(newC);
+  const cid=newC.id;
   $('noSearch').value=''; $('noResults').innerHTML=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value='';
   $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
   addCustToOrder(cid);

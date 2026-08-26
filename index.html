@@ -68,8 +68,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .icon{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 .empty{text-align:center;color:var(--text3);padding:26px 0;font-size:14px;}
 
-.cust-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;transition:.15s;}
+.cust-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;transition:.15s;cursor:pointer;}
 .cust-item:hover{border-color:var(--primary);background:var(--primary-bg);}
+.cust-item.picked{border-color:var(--primary);background:var(--primary-bg);}
 .cust-item .info{flex:1;min-width:0;}
 .cust-item .name{font-weight:600;font-size:15px;}
 .cust-item .meta{font-size:12.5px;color:var(--text2);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
@@ -136,6 +137,9 @@ tr:hover td{background:#f8fafc;}
 .bday-card .name{font-weight:600;font-size:15px;}
 .bday-card .msg{font-size:12.5px;color:var(--text2);margin-top:3px;}
 
+.pick-divider{font-size:12.5px;color:var(--text3);margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
+.pick-divider::before,.pick-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
 #toast.show{opacity:1;}
 #connBar{text-align:center;font-size:13px;padding:8px;color:var(--text2);}
@@ -161,6 +165,7 @@ tr:hover td{background:#f8fafc;}
       </div>
     </div>
     <button class="nav-single" data-page="notelist"><span>📒 便签列表</span><span class="badge zero" id="badgeNoteList">0</span></button>
+    <button class="nav-single" data-page="orders"><span>🧾 订单管理</span><span class="badge zero" id="badgeOrders">0</span></button>
     <button class="nav-single" data-page="customers"><span>👥 客户管理</span><span class="badge zero" id="badgeCust">0</span></button>
     <div class="side-foot">数据保存在 Supabase 云端<br>创建满 15 天未出结果自动判失败</div>
   </aside>
@@ -180,7 +185,7 @@ tr:hover td{background:#f8fafc;}
         <div class="stats" id="statsRow"></div>
         <div class="panel">
           <h2><span class="icon" style="background:var(--warn-bg);">📋</span>今日待跟进 <span class="tag tag-following" id="todoCount"></span></h2>
-          <div class="sub">以下客户状态尚未更新（今天还没跟进），请逐个跟进处理</div>
+          <div class="sub">以下订单状态尚未更新（今天还没跟进），请逐个跟进处理</div>
           <div id="todoList"></div>
         </div>
       </div>
@@ -230,25 +235,42 @@ tr:hover td{background:#f8fafc;}
         </div>
       </div>
 
-      <!-- 客户管理 -->
-      <div id="page-customers" style="display:none;">
+      <!-- 订单管理 -->
+      <div id="page-orders" style="display:none;">
         <div class="toolbar">
-          <input type="text" id="searchInput" placeholder="搜索姓名或身份证号…">
-          <div class="seg" id="statusFilter">
+          <input type="text" id="orderSearchInput" placeholder="搜索客户姓名或身份证号…">
+          <div class="seg" id="orderFilter">
             <button data-f="all" class="active">全部</button>
             <button data-f="跟进中">跟进中</button>
             <button data-f="成功">成功</button>
             <button data-f="失败">失败</button>
           </div>
-          <button class="btn btn-primary" onclick="openCreateModal()">＋ 新建客户</button>
-          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">导出CSV</button>
+          <button class="btn btn-primary" onclick="openNewOrderModal()">＋ 新建订单</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportOrderCSV()">导出CSV</button>
         </div>
         <div class="panel" style="padding:8px 12px;">
           <table>
             <thead><tr>
-              <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
-              <th>电话</th><th>地址</th>
+              <th>客户</th><th>身份证号</th><th>性别/年龄</th><th>状态</th>
               <th>出游/保险</th><th>创建日期</th><th>最后跟进</th><th>剩余天数</th><th style="text-align:right">操作</th>
+            </tr></thead>
+            <tbody id="orderTable"></tbody>
+          </table>
+          <div class="empty" id="orderEmpty" style="display:none;">暂无订单，点击右上角「新建订单」开始</div>
+        </div>
+      </div>
+
+      <!-- 客户管理 -->
+      <div id="page-customers" style="display:none;">
+        <div class="toolbar">
+          <input type="text" id="searchInput" placeholder="搜索姓名或身份证号…">
+          <button class="btn btn-primary" onclick="openCreateModal()">＋ 新建客户</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportCustCSV()">导出CSV</button>
+        </div>
+        <div class="panel" style="padding:8px 12px;">
+          <table>
+            <thead><tr>
+              <th>姓名</th><th>身份证号</th><th>性别/年龄</th><th>电话</th><th>地址</th><th>名下订单</th><th>创建日期</th><th style="text-align:right">操作</th>
             </tr></thead>
             <tbody id="custTable"></tbody>
           </table>
@@ -261,17 +283,17 @@ tr:hover td{background:#f8fafc;}
   </div>
 </div>
 
-<!-- 新建客户 -->
+<!-- 新建客户（纯客户信息） -->
 <div class="modal-mask" id="createModal">
   <div class="modal">
-    <div class="modal-head"><h3>新建客户（生成订单）</h3><button class="modal-close" onclick="closeModal('createModal')">×</button></div>
+    <div class="modal-head"><h3>新建客户</h3><button class="modal-close" onclick="closeModal('createModal')">×</button></div>
     <div class="modal-body">
       <div class="form-item">
         <label>客户姓名 *</label>
         <input type="text" id="cName" placeholder="请输入姓名" maxlength="30">
       </div>
       <div class="form-item">
-        <label>身份证号 *</label>
+        <label>身份证号（选填）</label>
         <input type="text" id="cIdcard" placeholder="18位身份证号码" maxlength="18">
         <div class="tip" id="cIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
       </div>
@@ -283,13 +305,9 @@ tr:hover td{background:#f8fafc;}
         <label>地址（选填）</label>
         <input type="text" id="cAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
       </div>
-      <div class="form-item">
-        <label>备注（选填）</label>
-        <textarea id="cNote" rows="2" placeholder="如：咨询云南线路，预算5000"></textarea>
-      </div>
       <div class="modal-foot">
         <button class="btn btn-ghost" onclick="closeModal('createModal')">取消</button>
-        <button class="btn btn-primary" onclick="createCustomer()">创建并开始跟进</button>
+        <button class="btn btn-primary" onclick="createCustomer()">保存客户</button>
       </div>
     </div>
   </div>
@@ -305,7 +323,7 @@ tr:hover td{background:#f8fafc;}
         <input type="text" id="eName" placeholder="请输入姓名" maxlength="30">
       </div>
       <div class="form-item">
-        <label>身份证号 *</label>
+        <label>身份证号（选填）</label>
         <input type="text" id="eIdcard" placeholder="18位身份证号码" maxlength="18">
         <div class="tip" id="eIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
       </div>
@@ -325,10 +343,53 @@ tr:hover td{background:#f8fafc;}
   </div>
 </div>
 
-<!-- 客户详情 -->
+<!-- 新建订单（搜索客户 / 新增客户） -->
+<div class="modal-mask" id="newOrderModal">
+  <div class="modal">
+    <div class="modal-head"><h3>新建订单</h3><button class="modal-close" onclick="closeModal('newOrderModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label>客户姓名（模糊搜索已有客户）</label>
+        <input type="text" id="noSearch" placeholder="输入姓名开始搜索…" maxlength="30">
+        <div id="noSearchTip" class="tip">输入姓名后，下方会列出匹配的已有客户，点击即可选中</div>
+      </div>
+      <div id="noResults"></div>
+      <div class="pick-divider">没有找到？填写下方信息新增客户并下单</div>
+      <div id="noNewForm">
+        <div class="form-item">
+          <label>客户姓名 *</label>
+          <input type="text" id="noName" placeholder="请输入姓名" maxlength="30">
+        </div>
+        <div class="form-item">
+          <label>身份证号（选填）</label>
+          <input type="text" id="noIdcard" placeholder="18位身份证号码" maxlength="18">
+          <div class="tip" id="noIdcardTip">系统自动校验有效性，并识别出生日期与性别</div>
+        </div>
+        <div class="form-item">
+          <label>电话号码（选填）</label>
+          <input type="text" id="noPhone" placeholder="如：13800138000" maxlength="20">
+        </div>
+        <div class="form-item">
+          <label>地址（选填）</label>
+          <input type="text" id="noAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
+        </div>
+      </div>
+      <div class="form-item">
+        <label>订单备注（选填，作为第一条跟进记录）</label>
+        <textarea id="noNote" rows="2" placeholder="如：咨询云南线路，预算5000"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('newOrderModal')">取消</button>
+        <button class="btn btn-primary" id="noConfirmBtn">创建订单</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 订单详情 -->
 <div class="modal-mask" id="detailModal">
   <div class="modal">
-    <div class="modal-head"><h3 id="dTitle">客户详情</h3><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
+    <div class="modal-head"><h3 id="dTitle">订单详情</h3><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
     <div class="modal-body">
       <div id="dInfo"></div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;" id="dStatusBtns"></div>
@@ -338,7 +399,7 @@ tr:hover td{background:#f8fafc;}
         <div id="dFollowErr" style="display:none;color:var(--danger);font-size:12.5px;margin-top:4px;">请填写跟进内容</div>
       </div>
       <div class="modal-foot" style="justify-content:space-between;">
-        <button class="btn btn-danger" id="dDeleteBtn">删除客户</button>
+        <button class="btn btn-danger" id="dDeleteBtn">删除订单</button>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" onclick="closeModal('detailModal')">关闭</button>
           <button class="btn btn-primary" onclick="addFollowUp()">记录并完成今日跟进</button>
@@ -347,6 +408,28 @@ tr:hover td{background:#f8fafc;}
       <div style="margin-top:14px;">
         <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">跟进历史</div>
         <div class="timeline" id="dTimeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 客户详情 -->
+<div class="modal-mask" id="custDetailModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="cdTitle">客户详情</h3><button class="modal-close" onclick="closeModal('custDetailModal')">×</button></div>
+    <div class="modal-body">
+      <div id="cdInfo"></div>
+      <div style="display:flex;gap:8px;margin:14px 0 16px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="openNewOrderModalForCust()">＋ 为此客户下单</button>
+        <button class="btn btn-ghost btn-sm" id="cdEditBtn">修改信息</button>
+      </div>
+      <div>
+        <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">名下订单（<span id="cdOrderCount">0</span>）</div>
+        <div id="cdOrders"></div>
+      </div>
+      <div class="modal-foot" style="justify-content:space-between;margin-top:16px;">
+        <button class="btn btn-danger" id="cdDeleteBtn">删除客户</button>
+        <button class="btn btn-ghost" onclick="closeModal('custDetailModal')">关闭</button>
       </div>
     </div>
   </div>
@@ -424,8 +507,8 @@ const SUPABASE_ANON_KEY = 'sb_publishable_6tj6Mso4Kzu_nZYHORQHFg_KWb3E6Vz';
 const $ = id => document.getElementById(id);
 const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const daysBetween = (a,b) => Math.floor((new Date(b)-new Date(a))/86400000);
-const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2200); };
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 function validateIdCard(id){
   id = id.trim().toUpperCase();
@@ -440,32 +523,47 @@ function validateIdCard(id){
 }
 function ageFromBirth(birth){ const b=new Date(birth), n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--; return a; }
 function maskId(id){ return id? id.slice(0,6)+'********'+id.slice(14) : '—'; }
+function statusTag(st, auto){
+  return st==='跟进中'?'<span class="tag tag-following">跟进中</span>'
+    : st==='成功'?'<span class="tag tag-success">成功</span>'
+    : '<span class="tag tag-fail">失败'+(auto?'·超时':'')+'</span>';
+}
 
 /* ============ Supabase 实例 ============ */
-let supabase, customers=[], currentCustId=null, notes=[];
+let supabase, customers=[], orders=[], notes=[], currentOrderId=null, currentCustId=null;
 
-/* ============ 自动判失败：客户端执行 ============ */
+function custOf(o){ return customers.find(c=>String(c.id)===String(o.customer_id)); }
+function ordersOf(c){ return orders.filter(o=>String(o.customer_id)===String(c.id)); }
+function findOrder(id){ return orders.find(o=>String(o.id)===String(id)); }
+function findCust(id){ return customers.find(c=>String(c.id)===String(id)); }
+
+/* ============ 自动判失败：客户端执行（作用于订单） ============ */
 function autoFail(){
   const today=todayStr(); let changed=0; const ups=[];
-  customers.forEach(c=>{
-    if(c.status==='跟进中' && daysBetween(c.created_at,today)>=15){
-      c.status='失败'; c.auto_failed=true; c.status_at=today;
-      c.follow_ups.push({date:today,note:'系统自动判定：创建满15天未出结果'});
-      ups.push({id:c.id,status:'失败',auto_failed:true,status_at:today,follow_ups:JSON.stringify(c.follow_ups)});
+  orders.forEach(o=>{
+    if(o.status==='跟进中' && daysBetween(o.created_at,today)>=15){
+      o.status='失败'; o.auto_failed=true; o.status_at=today;
+      o.follow_ups.push({date:today,note:'系统自动判定：创建满15天未出结果'});
+      ups.push({id:o.id,status:'失败',auto_failed:true,status_at:today,follow_ups:JSON.stringify(o.follow_ups)});
       changed++;
     }
   });
   if(changed){
-    ups.forEach(u=>supabase.from('customers').update(u).eq('id',u.id));
-    toast('系统自动判定 '+changed+' 位客户跟进失败（超15天）');
+    ups.forEach(u=>supabase.from('orders').update(u).eq('id',u.id));
+    toast('系统自动判定 '+changed+' 个订单跟进失败（超15天）');
   }
 }
 
 /* ============ 数据读写 ============ */
 async function loadData(){
-  const {data,error}=await supabase.from('customers').select('*').order('created_at',{ascending:true});
-  if(error){ toast('读取失败：'+error.message); return; }
-  customers = data.map(r=>({...r, follow_ups: typeof r.follow_ups==='string'?JSON.parse(r.follow_ups):(r.follow_ups||[])}));
+  const [cRes, oRes] = await Promise.all([
+    supabase.from('customers').select('*').order('created_at',{ascending:true}),
+    supabase.from('orders').select('*').order('created_at',{ascending:true}),
+  ]);
+  if(cRes.error){ toast('客户读取失败：'+cRes.error.message); return; }
+  if(oRes.error){ toast('订单读取失败：'+oRes.error.message); return; }
+  customers = cRes.data.map(r=>({...r}));
+  orders = oRes.data.map(r=>({...r, follow_ups: typeof r.follow_ups==='string'?JSON.parse(r.follow_ups):(r.follow_ups||[])}));
   autoFail();
   await loadNotes();
   render();
@@ -476,24 +574,45 @@ async function loadNotes(){
   notes = data.map(r=>({...r}));
 }
 async function saveCustomer(rec){
-  const row={ ...rec, follow_ups:JSON.stringify(rec.follow_ups||[]) };
+  const row={ ...rec };
   if(rec.id){
     const {error}=await supabase.from('customers').update(row).eq('id',rec.id);
-    if(error)return toast('更新失败：'+error.message);
+    if(error)return toast('客户更新失败：'+error.message);
   }else{
     const {error}=await supabase.from('customers').insert(row);
-    if(error)return toast('创建失败：'+error.message);
+    if(error)return toast('客户创建失败：'+error.message);
   }
   await loadData();
 }
 async function deleteCustomer(id){
+  const c=findCust(id); if(!c)return;
+  const n=ordersOf(c).length;
+  if(n>0){ toast('该客户名下还有 '+n+' 个订单，请先在订单管理中处理'); return; }
+  if(!confirm('确定删除客户「'+c.name+'」？此操作不可恢复。')) return;
   const {error}=await supabase.from('customers').delete().eq('id',id);
   if(error)return toast('删除失败：'+error.message);
-  closeModal('detailModal'); await loadData(); toast('已删除');
+  closeModal('custDetailModal'); await loadData(); toast('客户已删除');
+}
+async function saveOrder(rec){
+  const row={ ...rec, follow_ups:JSON.stringify(rec.follow_ups||[]) };
+  if(rec.id){
+    const {error}=await supabase.from('orders').update(row).eq('id',rec.id);
+    if(error)return toast('订单更新失败：'+error.message);
+  }else{
+    const {error}=await supabase.from('orders').insert(row);
+    if(error)return toast('订单创建失败：'+error.message);
+  }
+  await loadData();
+}
+async function deleteOrder(id){
+  if(!confirm('确定删除该订单？此操作不可恢复。')) return;
+  const {error}=await supabase.from('orders').delete().eq('id',id);
+  if(error)return toast('删除失败：'+error.message);
+  closeModal('detailModal'); await loadData(); toast('订单已删除');
 }
 
 /* ============ 派生计算 ============ */
-function pendingList(){ const t=todayStr(); return customers.filter(c=>c.status==='跟进中'&&c.last_follow_at!==t); }
+function pendingList(){ const t=todayStr(); return orders.filter(o=>o.status==='跟进中'&&o.last_follow_at!==t); }
 function daysToBirthday(birth){
   if(!birth||!/^\d{4}-\d{2}-\d{2}$/.test(birth)) return null;
   const now=new Date(); const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -502,12 +621,22 @@ function daysToBirthday(birth){
   return Math.round((next-today)/86400000);
 }
 function birthdayList(){ return customers.filter(c=>{ const d=daysToBirthday(c.birth); return d!==null && d>=0 && d<=15; }); }
-function remaining(c){ return Math.max(0, 15 - daysBetween(c.created_at, todayStr())); }
+function remaining(o){ return Math.max(0, 15 - daysBetween(o.created_at, todayStr())); }
 function daysLeftClass(d){ return d<=3?'urgent':d<=7?'warn':'ok'; }
+function insuranceList(){
+  const t=todayStr();
+  return orders.filter(o=>{
+    if(o.status!=='成功'||!o.travel_date) return false;
+    if(o.insurance_bought) return false;
+    const d=daysBetween(t, o.travel_date);
+    return d>=0 && d<=3;
+  });
+}
 
 /* ============ 渲染 ============ */
 function render(){
-  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderTable(); renderNotes(); renderNoteList(); renderBadges();
+  renderStats(); renderTodo(); renderBday(); renderInsurance(); renderOrders(); renderCustomers();
+  renderNotes(); renderNoteList(); renderBadges();
 }
 function setBadge(id, n){
   const el=$(id); el.textContent=n;
@@ -519,13 +648,14 @@ function renderBadges(){
   setBadge('badgeNotes', notesList().length);
   setBadge('badgeNoteList', notes.length);
   setBadge('badgeIns', insuranceList().length);
+  setBadge('badgeOrders', orders.length);
   setBadge('badgeCust', customers.length);
 }
 function renderStats(){
-  const cs=customers, f=cs.filter(c=>c.status==='跟进中').length, s=cs.filter(c=>c.status==='成功').length, fa=cs.filter(c=>c.status==='失败').length;
+  const os=orders, f=os.filter(o=>o.status==='跟进中').length, s=os.filter(o=>o.status==='成功').length, fa=os.filter(o=>o.status==='失败').length;
   const done=s+fa, rate=done?Math.round(s/done*100)+'%':'—';
   $('statsRow').innerHTML=`
-    <div class="stat-card c-blue"><div class="num">${cs.length}</div><div class="label">客户总数</div></div>
+    <div class="stat-card c-blue"><div class="num">${os.length}</div><div class="label">订单总数</div></div>
     <div class="stat-card c-amber"><div class="num">${f}</div><div class="label">跟进中</div></div>
     <div class="stat-card c-green"><div class="num">${s}</div><div class="label">成功</div></div>
     <div class="stat-card c-red"><div class="num">${fa}</div><div class="label">失败</div></div>
@@ -533,20 +663,21 @@ function renderStats(){
 }
 function renderTodo(){
   const list=pendingList();
-  $('todoCount').textContent=list.length+' 位';
-  if(!list.length){ $('todoList').innerHTML='<div class="empty">🎉 太棒了！今天需要跟进的客户已全部处理完</div>'; return; }
-  $('todoList').innerHTML=list.map(c=>{
-    const d=remaining(c);
-    const last=c.follow_ups&&c.follow_ups.length?c.follow_ups[c.follow_ups.length-1]:null;
+  $('todoCount').textContent=list.length+' 单';
+  if(!list.length){ $('todoList').innerHTML='<div class="empty">🎉 太棒了！今天需要跟进的订单已全部处理完</div>'; return; }
+  $('todoList').innerHTML=list.map(o=>{
+    const c=custOf(o); if(!c) return '';
+    const d=remaining(o);
+    const last=o.follow_ups&&o.follow_ups.length?o.follow_ups[o.follow_ups.length-1]:null;
     const noteHtml=last?`<div class="meta" style="margin-top:5px;color:var(--text);">💬 ${last.date}：${last.note}</div>`:`<div class="meta" style="margin-top:5px;color:var(--text3);">暂无跟进备注</div>`;
-    return `<div class="cust-item">
+    return `<div class="cust-item" style="cursor:default;">
       <div class="info"><div class="name">${c.name} <span class="days-left ${daysLeftClass(d)}">剩${d}天</span></div>
-      <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${c.created_at}</span><span>已跟进 ${c.follow_ups.length} 次</span></div>
+      <div class="meta"><span>${maskId(c.id_card)}</span><span>创建于 ${o.created_at}</span><span>已跟进 ${o.follow_ups.length} 次</span></div>
       ${noteHtml}</div>
       <div class="ops">
-        <button class="btn btn-primary btn-sm" data-open="${c.id}">跟进</button>
-        <button class="btn btn-success btn-sm" data-qs="${c.id}|成功">成功</button>
-        <button class="btn btn-danger btn-sm" data-qs="${c.id}|失败">失败</button>
+        <button class="btn btn-primary btn-sm" data-open="${o.id}">跟进</button>
+        <button class="btn btn-success btn-sm" data-qs="${o.id}|成功">成功</button>
+        <button class="btn btn-danger btn-sm" data-qs="${o.id}|失败">失败</button>
       </div>
     </div>`;
   }).join('');
@@ -569,28 +700,20 @@ function renderBday(){
       <div class="msg">${ageFromBirth(c.birth)} 岁 · ${maskId(c.id_card)}</div></div></div>`;
   }).join('')+`</div>`;
 }
-function insuranceList(){
-  const t=todayStr();
-  return customers.filter(c=>{
-    if(c.status!=='成功'||!c.travel_date) return false;
-    if(c.insurance_bought) return false;
-    const d=daysBetween(t, c.travel_date);
-    return d>=0 && d<=3;
-  });
-}
 function renderInsurance(){
   const list=insuranceList();
   $('insCount').textContent=list.length+' 单';
   if(!list.length){ $('insList').innerHTML='<div class="empty">✅ 暂无需要在 3 天内提醒购保险的订单</div>'; return; }
-  $('insList').innerHTML=list.map(c=>{
-    const d=daysBetween(todayStr(), c.travel_date);
+  $('insList').innerHTML=list.map(o=>{
+    const c=custOf(o); if(!c) return '';
+    const d=daysBetween(todayStr(), o.travel_date);
     const leftTxt = d===0?'今天出游':('还有 '+d+' 天出游');
-    return `<div class="cust-item">
+    return `<div class="cust-item" style="cursor:default;">
       <div class="info"><div class="name">${c.name} <span class="days-left urgent">${leftTxt}</span></div>
-      <div class="meta"><span>📍 ${c.travel_location||'—'}</span><span>出游日 ${c.travel_date}</span><span>${maskId(c.id_card)}</span></div></div>
+      <div class="meta"><span>📍 ${o.travel_location||'—'}</span><span>出游日 ${o.travel_date}</span><span>${maskId(c.id_card)}</span></div></div>
       <div class="ops">
-        <button class="btn btn-success btn-sm" data-buy="${c.id}">已购保险</button>
-        <button class="btn btn-primary btn-sm" data-open="${c.id}">详情</button>
+        <button class="btn btn-success btn-sm" data-buy="${o.id}">已购保险</button>
+        <button class="btn btn-primary btn-sm" data-open="${o.id}">详情</button>
       </div>
     </div>`;
   }).join('');
@@ -602,12 +725,81 @@ function renderInsurance(){
   });
 }
 window.markInsurance=async id=>{
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
-  if(!confirm('确认该客户已购买出游保险？确认后将从提醒列表移除。')) return;
-  c.insurance_bought=true;
-  c.follow_ups.push({date:todayStr(),note:'已购出游保险'});
-  await saveCustomer(c); toast('已标记为已购保险');
+  const o=findOrder(id); if(!o)return;
+  if(!confirm('确认该订单客户已购买出游保险？确认后将从提醒列表移除。')) return;
+  o.insurance_bought=true;
+  o.follow_ups.push({date:todayStr(),note:'已购出游保险'});
+  await saveOrder(o); toast('已标记为已购保险');
 };
+function renderOrders(){
+  const kw=$('orderSearchInput').value.trim().toLowerCase();
+  const f=$('orderFilter').querySelector('.active').dataset.f;
+  let list=orders.filter(o=>{
+    if(f!=='all'&&o.status!==f)return false;
+    if(kw){
+      const c=custOf(o);
+      const hit = c && (c.name.toLowerCase().includes(kw)||(c.id_card&&c.id_card.toLowerCase().includes(kw)));
+      if(!hit) return false;
+    }
+    return true;
+  });
+  $('orderEmpty').style.display=list.length?'none':'';
+  $('orderTable').innerHTML=list.map(o=>{
+    const c=custOf(o); if(!c) return '';
+    const d=remaining(o), st=o.status;
+    return `<tr>
+      <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
+      <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
+      <td>${statusTag(st,o.auto_failed)}</td>
+      <td>${st==='成功'?(o.travel_date||'—')+' · '+(o.travel_location||'—')+' · '+(o.insurance_bought?'<span class="tag tag-success">已购</span>':'<span class="tag tag-insurance">待购</span>'):'—'}</td>
+      <td>${o.created_at}</td><td>${o.last_follow_at||'—'}</td>
+      <td>${st==='跟进中'?'<span class="days-left '+daysLeftClass(d)+'">'+d+'天</span>':'—'}</td>
+      <td style="text-align:right">
+        <button class="btn btn-primary btn-sm" data-open="${o.id}">跟进</button>
+        <button class="btn btn-success btn-sm" data-qs="${o.id}|成功">成功</button>
+        <button class="btn btn-danger btn-sm" data-qs="${o.id}|失败">失败</button>
+      </td>
+    </tr>`;
+  }).join('');
+  $('orderTable').querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click', ()=>openDetail(b.dataset.open));
+  });
+  $('orderTable').querySelectorAll('[data-qs]').forEach(b=>{
+    b.addEventListener('click', ()=>{ const [id,s]=b.dataset.qs.split('|'); quickStatus(id,s); });
+  });
+}
+function renderCustomers(){
+  const kw=$('searchInput').value.trim().toLowerCase();
+  let list=customers.filter(c=>{
+    if(kw&&!(c.name.toLowerCase().includes(kw)||(c.id_card&&c.id_card.toLowerCase().includes(kw))))return false;
+    return true;
+  });
+  $('tableEmpty').style.display=list.length?'none':'';
+  $('custTable').innerHTML=list.map(c=>{
+    const n=ordersOf(c).length;
+    return `<tr>
+      <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
+      <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
+      <td>${c.phone||'—'}</td><td>${c.address||'—'}</td>
+      <td>${n?('<span class="tag tag-following">'+n+' 单</span>'):'<span style="color:var(--text3)">0</span>'}</td>
+      <td>${c.created_at}</td>
+      <td style="text-align:right">
+        <button class="btn btn-primary btn-sm" data-order="${c.id}">下单</button>
+        <button class="btn btn-ghost btn-sm" data-edit="${c.id}">修改</button>
+        <button class="btn btn-ghost btn-sm" data-cust="${c.id}">详情</button>
+      </td>
+    </tr>`;
+  }).join('');
+  $('custTable').querySelectorAll('[data-cust]').forEach(b=>{
+    b.addEventListener('click', ()=>openCustDetail(b.dataset.cust));
+  });
+  $('custTable').querySelectorAll('[data-edit]').forEach(b=>{
+    b.addEventListener('click', ()=>openEditModal(b.dataset.edit));
+  });
+  $('custTable').querySelectorAll('[data-order]').forEach(b=>{
+    b.addEventListener('click', ()=>openNewOrderModalForCust(b.dataset.order));
+  });
+}
 
 /* ============ 便签 ============ */
 function notesList(){ return notes.filter(n=>!n.done); }
@@ -639,7 +831,6 @@ function renderNotes(){
     b.addEventListener('click', ()=>completeNote(b.dataset.done));
   });
 }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 window.addNote=async()=>{
   const ta=$('noteInput'); const content=ta.value.trim();
   if(!content){ return toast('请先输入便签内容'); }
@@ -697,67 +888,36 @@ function renderNoteList(){
   $('notePrev').disabled = notePage<=1;
   $('noteNext').disabled = notePage>=pages;
 }
-function renderTable(){
-  const kw=$('searchInput').value.trim().toLowerCase();
-  const f=$('statusFilter').querySelector('.active').dataset.f;
-  let list=customers.filter(c=>{
-    if(f!=='all'&&c.status!==f)return false;
-    if(kw&&!(c.name.toLowerCase().includes(kw)||(c.id_card&&c.id_card.toLowerCase().includes(kw))))return false;
-    return true;
-  });
-  $('tableEmpty').style.display=list.length?'none':'';
-  $('custTable').innerHTML=list.map(c=>{
-    const d=remaining(c), st=c.status;
-    const tag = st==='跟进中'?'<span class="tag tag-following">跟进中</span>'
-      : st==='成功'?'<span class="tag tag-success">成功</span>'
-      : '<span class="tag tag-fail">失败'+(c.auto_failed?'·超时':'')+'</span>';
-    return `<tr>
-      <td><b>${c.name}</b></td><td>${maskId(c.id_card)}</td>
-      <td>${c.gender||'—'}/${c.birth?ageFromBirth(c.birth)+'岁':'—'}</td>
-      <td>${tag}</td>
-      <td>${c.phone||'—'}</td><td>${c.address||'—'}</td>
-      <td>${c.status==='成功'?(c.travel_date||'—')+' · '+(c.travel_location||'—')+' · '+(c.insurance_bought?'<span class="tag tag-success">已购</span>':'<span class="tag tag-insurance">待购</span>'):'—'}</td>
-      <td>${c.created_at}</td><td>${c.last_follow_at||'—'}</td>
-      <td>${st==='跟进中'?'<span class="days-left '+daysLeftClass(d)+'">'+d+'天</span>':'—'}</td>
-      <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-edit="${c.id}">修改</button> <button class="btn btn-ghost btn-sm" data-open="${c.id}">详情</button></td>
-    </tr>`;
-  }).join('');
-  $('custTable').querySelectorAll('[data-open]').forEach(b=>{
-    b.addEventListener('click', ()=>openDetail(b.dataset.open));
-  });
-  $('custTable').querySelectorAll('[data-edit]').forEach(b=>{
-    b.addEventListener('click', ()=>openEditModal(b.dataset.edit));
-  });
-}
 
-/* ============ 弹窗 / 操作 ============ */
-window.openCreateModal=()=>{ $('cName').value='';$('cIdcard').value='';$('cPhone').value='';$('cAddress').value='';$('cNote').value='';$('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别';$('cIdcardTip').style.color='var(--text3)'; showModal('createModal'); };
+/* ============ 新建客户 / 修改客户 ============ */
+window.openCreateModal=()=>{
+  $('cName').value='';$('cIdcard').value='';$('cPhone').value='';$('cAddress').value='';
+  $('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别';$('cIdcardTip').style.color='var(--text3)';
+  showModal('createModal');
+};
 window.createCustomer=async()=>{
-  const name=$('cName').value.trim(), idcard=$('cIdcard').value.trim(), note=$('cNote').value.trim();
+  const name=$('cName').value.trim(), idcard=$('cIdcard').value.trim();
   const phone=$('cPhone').value.trim(), address=$('cAddress').value.trim();
   if(!name){ return toast('请填写姓名'); }
   let birth=null, gender=null;
-  if(idcard){                       // 身份证非必填：填了才校验
+  if(idcard){
     const v=validateIdCard(idcard);
     if(!v.ok){ $('cIdcardTip').textContent='⚠ '+v.msg; $('cIdcardTip').style.color='var(--danger)'; return; }
     birth=v.birth; gender=v.gender;
-  } else {
-    $('cIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('cIdcardTip').style.color='var(--text3)';
   }
   const today=todayStr();
-  await saveCustomer({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] });
-  closeModal('createModal'); toast('已创建并开始跟进');
+  await saveCustomer({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:today });
+  closeModal('createModal'); toast('已创建客户，可在订单管理为其下单');
 };
-/* 修改客户信息 */
 window.openEditModal=id=>{
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  const c=findCust(id); if(!c)return;
   $('eName').value=c.name||''; $('eIdcard').value=c.id_card||''; $('ePhone').value=c.phone||''; $('eAddress').value=c.address||'';
   $('eIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('eIdcardTip').style.color='var(--text3)';
   $('editConfirmBtn').onclick=()=>saveEditCustomer(id);
   showModal('editModal');
 };
 window.saveEditCustomer=async id=>{
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  const c=findCust(id); if(!c)return;
   const name=$('eName').value.trim(), idcard=$('eIdcard').value.trim();
   const phone=$('ePhone').value.trim(), address=$('eAddress').value.trim();
   if(!name){ return toast('请填写姓名'); }
@@ -771,43 +931,129 @@ window.saveEditCustomer=async id=>{
   closeModal('editModal');
   await saveCustomer(c); toast('已保存修改');
 };
+
+/* ============ 新建订单（搜索客户 / 新增客户） ============ */
+let newOrderCustId=null;
+window.openNewOrderModal=()=>{
+  newOrderCustId=null;
+  $('noSearch').value=''; $('noResults').innerHTML='';
+  $('noSearchTip').textContent='输入姓名后，下方会列出匹配的已有客户，点击即可选中';
+  $('noName').value=''; $('noIdcard').value=''; $('noPhone').value=''; $('noAddress').value=''; $('noNote').value='';
+  $('noIdcardTip').textContent='系统自动校验有效性，并识别出生日期与性别'; $('noIdcardTip').style.color='var(--text3)';
+  $('noConfirmBtn').textContent='创建订单';
+  showModal('newOrderModal');
+};
+window.openNewOrderModalForCust=(id=null)=>{
+  openNewOrderModal();
+  if(id){
+    const c=findCust(id);
+    if(c){
+      newOrderCustId=c.id;
+      $('noSearch').value=c.name;
+      $('noSearchTip').textContent='已选中已有客户：'+c.name+'（'+maskId(c.id_card)+'）';
+      $('noResults').innerHTML='';
+      $('noConfirmBtn').textContent='为该客户创建订单';
+    }
+  }
+};
+$('noSearch').oninput=()=>{
+  newOrderCustId=null;
+  const kw=$('noSearch').value.trim();
+  $('noConfirmBtn').textContent='创建订单';
+  if(!kw){
+    $('noResults').innerHTML='';
+    $('noSearchTip').textContent='输入姓名后，下方会列出匹配的已有客户，点击即可选中';
+    return;
+  }
+  const hits=customers.filter(c=>c.name.toLowerCase().includes(kw.toLowerCase()));
+  if(!hits.length){
+    $('noResults').innerHTML='<div class="empty" style="padding:14px 0;">未找到「'+escapeHtml(kw)+'」对应的客户，可填写下方信息新增</div>';
+    $('noSearchTip').textContent='';
+    return;
+  }
+  $('noResults').innerHTML=hits.map(c=>`
+    <div class="cust-item" data-pick="${c.id}">
+      <div class="info"><div class="name">${c.name}</div>
+      <div class="meta"><span>${maskId(c.id_card)}</span><span>${c.phone||'无电话'}</span><span>名下 ${ordersOf(c).length} 单</span></div></div>
+    </div>`).join('');
+  $('noResults').querySelectorAll('[data-pick]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const c=findCust(el.dataset.pick); if(!c)return;
+      newOrderCustId=c.id;
+      $('noSearch').value=c.name;
+      $('noSearchTip').textContent='已选中：'+c.name+'（'+maskId(c.id_card)+'）';
+      $('noResults').innerHTML='';
+      $('noConfirmBtn').textContent='为该客户创建订单';
+    });
+  });
+  $('noSearchTip').textContent='点击列表中的客户可选中，或填写下方信息新增';
+};
+window.createOrder=async()=>{
+  const note=$('noNote').value.trim();
+  const today=todayStr();
+  let cid=newOrderCustId;
+  if(cid){
+    const c=findCust(cid);
+    if(!c){ toast('客户不存在，请重新选择'); return; }
+  }else{
+    const name=$('noName').value.trim(), idcard=$('noIdcard').value.trim();
+    const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();
+    if(!name){ return toast('请填写客户姓名'); }
+    let birth=null, gender=null;
+    if(idcard){
+      const v=validateIdCard(idcard);
+      if(!v.ok){ $('noIdcardTip').textContent='⚠ '+v.msg; $('noIdcardTip').style.color='var(--danger)'; return; }
+      birth=v.birth; gender=v.gender;
+    }
+    const {data,error}=await supabase.from('customers').insert({ name, id_card:idcard||null, birth, gender, phone:phone||null, address:address||null, created_at:today });
+    if(error)return toast('客户创建失败：'+error.message);
+    cid=data[0].id;
+  }
+  const row={ customer_id:cid, status:'跟进中', created_at:today, last_follow_at:null, status_at:today, auto_failed:false, follow_ups: note?[{date:today,note}]:[] };
+  const {error}=await supabase.from('orders').insert(row);
+  if(error)return toast('订单创建失败：'+error.message);
+  closeModal('newOrderModal'); await loadData(); toast('订单已创建，开始跟进');
+};
+
+/* ============ 订单详情 / 状态操作 ============ */
 window.openDetail=id=>{
  try{
-  currentCustId=id; const c=customers.find(x=>String(x.id)===String(id)); if(!c){ toast('未找到该客户(id='+id+')'); return; }
+  currentOrderId=id; const o=findOrder(id); if(!o){ toast('未找到该订单(id='+id+')'); return; }
+  const c=custOf(o); if(!c){ toast('未找到关联客户'); return; }
   $('dTitle').textContent=c.name+' 的订单';
   $('dInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
-    <div>证件号：<b>${c.id_card}</b>（${maskId(c.id_card)}）</div>
+    <div>客户：<b>${c.name}</b> · 证件：${maskId(c.id_card)}</div>
     <div>出生：${c.birth||'—'} · ${c.gender||'—'} · ${c.birth?ageFromBirth(c.birth)+'岁':'—'}</div>
     <div>电话：${c.phone||'—'} · 地址：${c.address||'—'}</div>
-    <div>状态：${c.status==='跟进中'?'<span class="tag tag-following">跟进中</span>':c.status==='成功'?'<span class="tag tag-success">成功</span>':'<span class="tag tag-fail">失败</span>'}</div>
-    <div>创建：${c.created_at} · 最后跟进：${c.last_follow_at||'—'}</div>
-    <div>距超时：${c.status==='跟进中'?remaining(c)+' 天':'已结束'}</div>
-    ${c.status==='失败'&&c.fail_reason?`<div style="color:var(--danger);">失败原因：${c.fail_reason}</div>`:''}
-    ${c.status==='成功'?`<div>出游：${c.travel_date||'—'} · ${c.travel_location||'—'} · ${c.insurance_bought?'<span class="tag tag-success">已购保险</span>':'<span class="tag tag-insurance">待购保险</span>'}</div>`:''}
+    <div>状态：${statusTag(o.status,o.auto_failed)}</div>
+    <div>创建：${o.created_at} · 最后跟进：${o.last_follow_at||'—'}</div>
+    <div>距超时：${o.status==='跟进中'?remaining(o)+' 天':'已结束'}</div>
+    ${o.status==='失败'&&o.fail_reason?`<div style="color:var(--danger);">失败原因：${o.fail_reason}</div>`:''}
+    ${o.status==='成功'?`<div>出游：${o.travel_date||'—'} · ${o.travel_location||'—'} · ${o.insurance_bought?'<span class="tag tag-success">已购保险</span>':'<span class="tag tag-insurance">待购保险</span>'}</div>`:''}
     </div>`;
   const mk=(s,cls)=>`<button class="btn btn-sm ${cls}" onclick="setStatus('${s}')">${s==='成功'?'标记成功':s==='失败'?'标记失败':'恢复跟进'}</button>`;
-  $('dStatusBtns').innerHTML = c.status==='跟进中'? mk('成功','btn-success')+mk('失败','btn-danger')
+  $('dStatusBtns').innerHTML = o.status==='跟进中'? mk('成功','btn-success')+mk('失败','btn-danger')
     : mk('跟进中','btn-ghost')+mk('成功','btn-success')+mk('失败','btn-danger');
   $('dFollowNote').value=''; $('dFollowErr').style.display='none';
-  $('dTimeline').innerHTML = (c.follow_ups||[]).slice().reverse().map(fl=>`<div class="timeline-item"><div class="timeline-date">${fl.date}</div><div class="timeline-note">${fl.note}</div></div>`).join('') || '<div class="empty">暂无跟进记录</div>';
-  $('dDeleteBtn').onclick=()=>{ if(confirm('确定删除该客户？此操作不可恢复。')) deleteCustomer(id); };
+  $('dTimeline').innerHTML = (o.follow_ups||[]).slice().reverse().map(fl=>`<div class="timeline-item"><div class="timeline-date">${fl.date}</div><div class="timeline-note">${fl.note}</div></div>`).join('') || '<div class="empty">暂无跟进记录</div>';
+  $('dDeleteBtn').onclick=()=>deleteOrder(id);
   showModal('detailModal');
  }catch(err){ toast('打开详情出错：'+err.message); console.error(err); }
 };
 window.setStatus=s=>{
-  const c=customers.find(x=>String(x.id)===String(currentCustId)); if(!c)return;
-  if(s==='失败'){ closeModal('detailModal'); openFailModal(c.id); }
-  else if(s==='成功'){ closeModal('detailModal'); openSuccessModal(c.id); }
-  else { doSetStatus(c.id,s); closeModal('detailModal'); }
+  const o=findOrder(currentOrderId); if(!o)return;
+  if(s==='失败'){ closeModal('detailModal'); openFailModal(o.id); }
+  else if(s==='成功'){ closeModal('detailModal'); openSuccessModal(o.id); }
+  else { doSetStatus(o.id,s); closeModal('detailModal'); }
 };
 window.quickStatus=(id,s)=>{
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  const o=findOrder(id); if(!o)return;
   if(s==='失败'){ openFailModal(id); }
   else if(s==='成功'){ openSuccessModal(id); }
   else { doSetStatus(id,s); }
 };
 function openFailModal(id){
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  const o=findOrder(id); const c=custOf(o); if(!o||!c)return;
   $('failCustName').textContent='客户：'+c.name;
   $('failReason').value=''; $('failErr').style.display='none';
   $('failConfirmBtn').onclick=()=>confirmFail(id);
@@ -816,52 +1062,92 @@ function openFailModal(id){
 window.confirmFail=async(id)=>{
   const reason=$('failReason').value.trim();
   if(!reason){ $('failErr').style.display='block'; return; }
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
-  c.status='失败'; c.status_at=todayStr(); c.auto_failed=false; c.fail_reason=reason;
-  c.follow_ups.push({date:todayStr(),note:'状态更新为：失败 · 原因：'+reason});
+  const o=findOrder(id); if(!o)return;
+  o.status='失败'; o.status_at=todayStr(); o.auto_failed=false; o.fail_reason=reason;
+  o.follow_ups.push({date:todayStr(),note:'状态更新为：失败 · 原因：'+reason});
   closeModal('failModal');
-  await saveCustomer(c); toast('已标记为失败');
+  await saveOrder(o); toast('已标记为失败');
 };
 function openSuccessModal(id){
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
+  const o=findOrder(id); const c=custOf(o); if(!o||!c)return;
   $('successCustName').textContent='客户：'+c.name;
-  $('travelDate').value=c.travel_date||''; $('travelLocation').value=c.travel_location||''; $('successErr').style.display='none';
+  $('travelDate').value=o.travel_date||''; $('travelLocation').value=o.travel_location||''; $('successErr').style.display='none';
   $('successConfirmBtn').onclick=()=>confirmSuccess(id);
   showModal('successModal');
 }
 window.confirmSuccess=async(id)=>{
   const td=$('travelDate').value, loc=$('travelLocation').value.trim();
   if(!td||!loc){ $('successErr').style.display='block'; return; }
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
-  c.status='成功'; c.status_at=todayStr(); c.auto_failed=false;
-  c.travel_date=td; c.travel_location=loc; c.insurance_bought=false;
-  c.follow_ups.push({date:todayStr(),note:'状态更新为：成功 · 出游 '+td+' '+loc});
+  const o=findOrder(id); if(!o)return;
+  o.status='成功'; o.status_at=todayStr(); o.auto_failed=false;
+  o.travel_date=td; o.travel_location=loc; o.insurance_bought=false;
+  o.follow_ups.push({date:todayStr(),note:'状态更新为：成功 · 出游 '+td+' '+loc});
   closeModal('successModal');
-  await saveCustomer(c); toast('已标记为成功，记得提醒购保险');
+  await saveOrder(o); toast('已标记为成功，记得提醒购保险');
 };
 async function doSetStatus(id,s){
-  const c=customers.find(x=>String(x.id)===String(id)); if(!c)return;
-  c.status=s; c.status_at=todayStr(); if(s!=='失败')c.auto_failed=false;
-  if(s==='成功'||s==='失败') c.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
-  await saveCustomer(c); toast('已标记为：'+s);
+  const o=findOrder(id); if(!o)return;
+  o.status=s; o.status_at=todayStr(); if(s!=='失败')o.auto_failed=false;
+  if(s==='成功'||s==='失败') o.follow_ups.push({date:todayStr(),note:'状态更新为：'+s});
+  await saveOrder(o); toast('已标记为：'+s);
 }
 window.addFollowUp=async()=>{
   const note=$('dFollowNote').value.trim();
   if(!note){ $('dFollowErr').style.display='block'; return; }
-  const c=customers.find(x=>String(x.id)===String(currentCustId)); if(!c)return;
-  c.follow_ups.push({date:todayStr(),note}); c.last_follow_at=todayStr();
-  await saveCustomer(c); toast('已记录，今日跟进完成'); openDetail(c.id);
+  const o=findOrder(currentOrderId); if(!o)return;
+  o.follow_ups.push({date:todayStr(),note}); o.last_follow_at=todayStr();
+  await saveOrder(o); toast('已记录，今日跟进完成'); openDetail(o.id);
 };
-window.exportCSV=()=>{
-  const head=['姓名','身份证号','出生日期','性别','电话','地址','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
-  const rows=customers.map(c=>[c.name,c.id_card,c.birth,c.gender,c.phone||'',c.address||'',c.status,c.fail_reason||'',c.travel_date||'',c.travel_location||'',c.insurance_bought?'是':'否',c.created_at,c.last_follow_at||'']);
+
+/* ============ 客户详情 ============ */
+window.openCustDetail=id=>{
+  const c=findCust(id); if(!c){ toast('未找到该客户'); return; }
+  currentCustId=c.id;
+  $('cdTitle').textContent=c.name+' 的客户详情';
+  $('cdInfo').innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:12px 16px;line-height:1.9;">
+    <div>姓名：<b>${c.name}</b></div>
+    <div>证件号：${c.id_card||'—'}（${maskId(c.id_card)}）</div>
+    <div>出生：${c.birth||'—'} · ${c.gender||'—'} · ${c.birth?ageFromBirth(c.birth)+'岁':'—'}</div>
+    <div>电话：${c.phone||'—'} · 地址：${c.address||'—'}</div>
+    <div>创建：${c.created_at}</div>
+    </div>`;
+  const os=ordersOf(c);
+  $('cdOrderCount').textContent=os.length;
+  $('cdOrders').innerHTML = os.length? os.map(o=>`
+    <div class="cust-item" style="cursor:default;">
+      <div class="info"><div class="meta" style="margin:0;color:var(--text);"><b>订单</b> ${o.created_at} · ${statusTag(o.status,o.auto_failed)}</div>
+      <div class="meta">${o.status==='成功'?('出游 '+o.travel_date+' '+o.travel_location):(o.status==='失败'&&o.fail_reason?('失败原因：'+o.fail_reason):'最后跟进：'+(o.last_follow_at||'—'))}</div></div>
+      <div class="ops"><button class="btn btn-ghost btn-sm" data-cd-open="${o.id}">查看</button></div>
+    </div>`).join('')
+    : '<div class="empty">该客户还没有订单</div>';
+  $('cdOrders').querySelectorAll('[data-cd-open]').forEach(b=>{
+    b.addEventListener('click', ()=>{ closeModal('custDetailModal'); openDetail(b.dataset.cdOpen); });
+  });
+  $('cdEditBtn').onclick=()=>{ closeModal('custDetailModal'); openEditModal(c.id); };
+  $('cdDeleteBtn').onclick=()=>deleteCustomer(c.id);
+  showModal('custDetailModal');
+};
+
+/* ============ 导出 ============ */
+window.exportOrderCSV=()=>{
+  const head=['客户姓名','身份证号','电话','地址','状态','失败原因','出游日期','出游地点','已购保险','创建日期','最后跟进'];
+  const rows=orders.map(o=>{
+    const c=custOf(o)||{};
+    return [c.name||'',c.id_card||'',c.phone||'',c.address||'',o.status,o.fail_reason||'',o.travel_date||'',o.travel_location||'',o.insurance_bought?'是':'否',o.created_at,o.last_follow_at||''];
+  });
   const csv=[head,...rows].map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv'}); const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='客户导出_'+todayStr()+'.csv'; a.click(); toast('已导出 CSV');
+  a.href=URL.createObjectURL(blob); a.download='订单导出_'+todayStr()+'.csv'; a.click(); toast('已导出订单 CSV');
+};
+window.exportCustCSV=()=>{
+  const head=['姓名','身份证号','出生日期','性别','电话','地址','名下订单数','创建日期'];
+  const rows=customers.map(c=>[c.name,c.id_card||'',c.birth||'',c.gender||'',c.phone||'',c.address||'',ordersOf(c).length,c.created_at]);
+  const csv=[head,...rows].map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv'}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='客户导出_'+todayStr()+'.csv'; a.click(); toast('已导出客户 CSV');
 };
 
 /* ============ UI 辅助 ============ */
-/* 事件委托：通过 data-open 触发详情弹窗，避免内联 onclick 的全局函数/类型坑 */
 document.addEventListener('click', e=>{
   const btn=e.target.closest('[data-open]');
   if(btn){ window.openDetail(btn.dataset.open); }
@@ -870,8 +1156,8 @@ function showModal(id){ $(id).classList.add('show'); }
 window.closeModal=id=>$(id).classList.remove('show');
 window.addEventListener('click',e=>{ if(e.target.classList.contains('modal-mask'))e.target.classList.remove('show'); });
 /* ============ 侧边栏导航 ============ */
-const PAGE_TITLE={todo:'今日待跟进', bday:'生日提醒', notes:'今日便签', notelist:'便签列表', ins:'待购保险', customers:'客户管理'};
-const PAGES=['todo','bday','notes','notelist','ins','customers'];
+const PAGE_TITLE={todo:'今日待跟进', bday:'生日提醒', notes:'今日便签', notelist:'便签列表', ins:'待购保险', orders:'订单管理', customers:'客户管理'};
+const PAGES=['todo','bday','notes','notelist','ins','orders','customers'];
 function switchPage(p){
   document.querySelectorAll('.sidebar .nav-item, .sidebar .nav-single').forEach(x=>x.classList.remove('active'));
   const btn=document.querySelector('.sidebar [data-page="'+p+'"]');
@@ -879,11 +1165,8 @@ function switchPage(p){
   PAGES.forEach(pg=>{ $('page-'+pg).style.display=pg===p?'':'none'; });
   $('pageTitle').textContent=PAGE_TITLE[p]||'';
 }
-/* 子菜单点击 */
 document.querySelectorAll('.sidebar .nav-item').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
-/* 独立菜单（便签列表/客户管理）点击 */
 document.querySelectorAll('.sidebar .nav-single').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
-/* 父菜单：展开/收起 + 跳到第一个子项 */
 $('wbParent').onclick=()=>{
   const subs=$('wbSubs'); const collapsed=$('wbParent').classList.toggle('collapsed');
   subs.classList.toggle('hide', collapsed);
@@ -892,9 +1175,9 @@ $('wbParent').onclick=()=>{
     switchPage(active?active.dataset.page:'todo');
   }
 };
-$('searchInput').oninput=renderTable;
-$('statusFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('statusFilter').querySelectorAll('button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderTable(); });
-/* 便签列表分页 */
+$('orderSearchInput').oninput=renderOrders;
+$('orderFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('orderFilter').querySelectorAll('button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderOrders(); });
+$('searchInput').oninput=renderCustomers;
 $('notePrev').onclick=()=>{ if(notePage>1){ notePage--; renderNoteList(); } };
 $('noteNext').onclick=()=>{ const pages=Math.max(1,Math.ceil(notes.length/NOTE_PAGE_SIZE)); if(notePage<pages){ notePage++; renderNoteList(); } };
 

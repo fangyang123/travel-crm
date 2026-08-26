@@ -153,13 +153,13 @@ tr:hover td{background:#f8fafc;}
 .pick-card .pc-role{background:var(--primary-bg);color:var(--primary-dark);font-size:11px;padding:1px 8px;border-radius:99px;font-weight:600;white-space:nowrap;}
 .pick-card .pc-remove{border:none;background:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;flex-shrink:0;}
 .pick-card .pc-remove:hover{color:var(--danger);background:var(--danger-bg);}
-.pick-card.main{background:linear-gradient(135deg,#2563eb,#1e40af);border-color:transparent;box-shadow:0 2px 6px rgba(37,99,235,.25);}
-.pick-card.main .pc-avatar{background:rgba(255,255,255,.22);color:#fff;}
-.pick-card.main .pc-name{color:#fff;}
-.pick-card.main .pc-meta{color:rgba(255,255,255,.85);}
-.pick-card.main .pc-role{background:#fff;color:var(--primary);}
-.pick-card.main .pc-remove{color:rgba(255,255,255,.85);}
-.pick-card.main .pc-remove:hover{color:#fff;background:rgba(255,255,255,.15);}
+.pick-card.main{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:1.5px solid #93c5fd;border-left:4px solid #2563eb;box-shadow:0 2px 6px rgba(37,99,235,.12);}
+.pick-card.main .pc-avatar{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;font-weight:700;font-size:15px;box-shadow:0 2px 5px rgba(37,99,235,.3);}
+.pick-card.main .pc-name{color:var(--text);}
+.pick-card.main .pc-meta{color:var(--text2);}
+.pick-card.main .pc-role{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;box-shadow:0 1px 3px rgba(37,99,235,.3);font-size:11.5px;padding:2px 10px;}
+.pick-card.main .pc-remove{color:var(--text3);}
+.pick-card.main .pc-remove:hover{color:var(--danger);background:var(--danger-bg);}
 
 /* ============ 新建订单 · 新增客户高亮区 ============ */
 .add-new-cust{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px dashed var(--primary);border-radius:11px;padding:14px 16px;margin-top:12px;position:relative;}
@@ -167,10 +167,14 @@ tr:hover td{background:#f8fafc;}
 .add-new-cust .anc-head{font-size:13.5px;font-weight:600;color:var(--primary-dark);margin:0 0 10px 8px;display:flex;align-items:center;gap:6px;}
 .add-new-cust .anc-head .anc-name{background:#fff;color:var(--primary);padding:2px 12px;border-radius:99px;border:1px solid #93c5fd;font-weight:700;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-.btn-add-new{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;transition:.18s;font-family:inherit;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 10px rgba(37,99,235,.35);letter-spacing:.3px;width:100%;justify-content:center;}
-.btn-add-new:hover{box-shadow:0 6px 16px rgba(37,99,235,.5);transform:translateY(-1px);}
-.btn-add-new:active{transform:translateY(0);box-shadow:0 2px 6px rgba(37,99,235,.4);}
-.btn-add-new .ba-icon{font-size:17px;}
+.btn-add-new{background:linear-gradient(135deg,#1d4ed8,#1e3a8a);color:#fff;border:none;border-radius:11px;padding:14px 22px;font-size:15.5px;font-weight:600;cursor:pointer;transition:.18s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 5px 16px rgba(37,99,235,.45),inset 0 1px 0 rgba(255,255,255,.18);letter-spacing:.3px;width:100%;position:relative;overflow:hidden;}
+.btn-add-new:hover{box-shadow:0 7px 22px rgba(37,99,235,.6),inset 0 1px 0 rgba(255,255,255,.22);transform:translateY(-1px);}
+.btn-add-new:active{transform:translateY(0);box-shadow:0 3px 10px rgba(37,99,235,.45);}
+.btn-add-new::before{content:'';position:absolute;left:-50px;top:0;bottom:0;width:40px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);transform:skewX(-22deg);animation:baShine 2.6s linear infinite;}
+@keyframes baShine{0%{left:-50px;}100%{left:110%;}}
+.btn-add-new .ba-icon{font-size:20px;font-weight:700;background:rgba(255,255,255,.22);width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.12);z-index:1;}
+.btn-add-new .ba-name{background:rgba(255,255,255,.26);color:#fff;padding:3px 12px;border-radius:99px;font-weight:700;z-index:1;}
+.btn-add-new .ba-text{z-index:1;}
 
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 22px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:300;}
 #toast.show{opacity:1;}
@@ -404,7 +408,7 @@ tr:hover td{background:#f8fafc;}
             <input type="text" id="noAddress" placeholder="如：广东省深圳市南山区…" maxlength="120">
           </div>
           <div class="modal-foot" style="justify-content:stretch;padding-top:6px;">
-            <button class="btn-add-new" onclick="addNewCustToOrder()"><span class="ba-icon">＋</span><span id="baTxt">用上方姓名新增客户并加入订单</span></button>
+            <button class="btn-add-new" onclick="addNewCustToOrder()"><span class="ba-icon">＋</span><span class="ba-text" id="baTxt">用上方姓名<span class="ba-name" id="baName">新增</span>客户并加入订单</span></button>
           </div>
         </div>
       </div>
@@ -1022,10 +1026,10 @@ window.openNewOrderModal=()=>{
 function updateAncBar(name){
   if(name){
     $('ancHead').innerHTML='➕ 为 <span class="anc-name" title="'+escapeHtml(name)+'">'+escapeHtml(name)+'</span> 创建新客户并加入此订单';
-    $('baTxt').textContent='用上方姓名「'+name+'」创建客户并加入订单';
+    $('baTxt').innerHTML='用上方姓名 <span class="ba-name">'+escapeHtml(name)+'</span> 创建客户并加入订单';
   }else{
     $('ancHead').textContent='➕ 补充信息后新增客户并加入订单';
-    $('baTxt').textContent='用上方姓名新增客户并加入订单';
+    $('baTxt').innerHTML='用上方姓名 <span class="ba-name">新增</span> 客户并加入订单';
   }
 }
 window.openNewOrderModalForCust=(id=null)=>{

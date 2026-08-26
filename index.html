@@ -1024,12 +1024,6 @@ $('noSearch').oninput=()=>{
     el.addEventListener('click', ()=>{ addCustToOrder(el.dataset.pick); });
   });
 };
-$('noSearch').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){
-    const first=$('noResults').querySelector('[data-pick]');
-    if(first){ e.preventDefault(); addCustToOrder(first.dataset.pick); }
-  }
-});
 window.addNewCustToOrder=async()=>{
   const name=$('noSearch').value.trim(), idcard=$('noIdcard').value.trim();
   const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();

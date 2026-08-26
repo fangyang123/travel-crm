@@ -927,6 +927,8 @@ window.createCustomer=async()=>{
   if(!name){ return toast('请填写姓名'); }
   let birth=null, gender=null;
   if(idcard){
+    const dupId=customers.find(c=>c.id_card===idcard);
+    if(dupId){ return toast('该身份证号已有客户「'+dupId.name+'」'); }
     const v=validateIdCard(idcard);
     if(!v.ok){ $('cIdcardTip').textContent='⚠ '+v.msg; $('cIdcardTip').style.color='var(--danger)'; return; }
     birth=v.birth; gender=v.gender;
@@ -949,6 +951,8 @@ window.saveEditCustomer=async id=>{
   if(!name){ return toast('请填写姓名'); }
   let birth=c.birth, gender=c.gender;
   if(idcard){
+    const dupId=customers.find(x=>String(x.id)!==String(id)&&x.id_card===idcard);
+    if(dupId){ return toast('该身份证号已有客户「'+dupId.name+'」'); }
     const v=validateIdCard(idcard);
     if(!v.ok){ $('eIdcardTip').textContent='⚠ '+v.msg; $('eIdcardTip').style.color='var(--danger)'; return; }
     birth=v.birth; gender=v.gender;
@@ -1032,6 +1036,8 @@ window.addNewCustToOrder=async()=>{
   if(dup){ return toast('已存在同名客户「'+name+'」，请在上方搜索结果中点选即可'); }
   let birth=null, gender=null;
   if(idcard){
+    const dupId=customers.find(c=>c.id_card===idcard);
+    if(dupId){ return toast('该身份证号已有客户「'+dupId.name+'」，请在上方搜索结果中点选'); }
     const v=validateIdCard(idcard);
     if(!v.ok){ $('noIdcardTip').textContent='⚠ '+v.msg; $('noIdcardTip').style.color='var(--danger)'; return; }
     birth=v.birth; gender=v.gender;

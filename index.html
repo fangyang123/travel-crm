@@ -1008,6 +1008,8 @@ window.addNewCustToOrder=async()=>{
   const name=$('noSearch').value.trim(), idcard=$('noIdcard').value.trim();
   const phone=$('noPhone').value.trim(), address=$('noAddress').value.trim();
   if(!name){ return toast('请在姓名输入框填写客户姓名'); }
+  const dup=customers.find(c=>c.name===name);
+  if(dup){ return toast('已存在同名客户「'+name+'」，请在上方搜索结果中点选即可'); }
   let birth=null, gender=null;
   if(idcard){
     const v=validateIdCard(idcard);
